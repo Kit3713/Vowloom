@@ -1,0 +1,4 @@
+<main class="community-page" style="--accent: <%= current_site.accent_color %>">
+  <header class="community-header"><%= link_to current_site.name, community_path, class: "brand" %><%= link_to "Community", community_path %></header>
+  <section class="feed-shell"><p class="eyebrow">Staff history</p><h1>Audit log</h1><p>The most recent 250 administrative actions are retained here. Invitation code values and passwords are never recorded.</p><% @events.each do |event| %><article class="post-card"><strong><%= event.action.humanize %></strong><p><%= event.actor.display_name %> · <%= event.created_at.to_fs(:long) %></p><%= tag.pre(JSON.pretty_generate(event.metadata)) if event.metadata.present? && event.metadata != {} %></article><% end %><% if @events.empty? %><p>No staff actions have been recorded yet.</p><% end %></section>
+</main>

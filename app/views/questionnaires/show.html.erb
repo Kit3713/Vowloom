@@ -1,0 +1,103 @@
+<main class="community-page" style="--accent: <%= @questionnaire.site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @questionnaire.site.name, community_path, class: "brand" %>
+    <%= link_to "All questionnaires", questionnaires_path %>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Questionnaire</p>
+    <h1><%= @questionnaire.title %></h1>
+    <%= simple_format(@questionnaire.introduction) %>
+
+    <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @questionnaire.site.content_live? %>
+      <section class="composer">
+        <h2>Add a question</h2>
+        <%= form_with url: questionnaire_questions_path(@questionnaire), class: "stack" do |f| %>
+          <%= f.label "question[prompt]", "Question or information" %>
+          <%= f.text_field "question[prompt]", required: true %>
+          <%= f.label "question[kind]", "Answer type" %>
+          <%= f.select "question[kind]", Question::TYPES.map { |type| [type.humanize, type] } %>
+          <%= f.label "question[options_text]", "Choices (one per line, if applicable)" %>
+          <%= f.text_area "question[options_text]", rows: 3 %>
+          <%= f.label "question[conditional_question_id]", "Only show after this answer (optional)" %>
+          <%= f.select "question[conditional_question_id]", @questionnaire.questions.map { |question| [question.prompt, question.id] }, include_blank: "Always show" %>
+          <%= f.label "question[conditional_value]", "Required earlier answer" %>
+          <%= f.text_field "question[conditional_value]", placeholder: "For example: yes" %>
+          <%= f.check_box "question[required]" %>
+          <%= f.label "question[required]", "Required" %>
+          <%= f.submit "Add question", class: "button" %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if authenticated? && @questionnaire.open_for_responses? %>
+      <% current_answers = @response.answers.index_by(&:question_id).transform_values { |answer| answer.value.fetch("answer", nil) } %>
+      <%= form_with url: questionnaire_response_path(@questionnaire), class: "composer" do |f| %>
+        <% if @staff_entry_invitees %>
+          <%= f.label :staff_invitee_id, "Record on behalf of (staff only, optional)" %>
+          <%= f.select :staff_invitee_id, @staff_entry_invitees.map { |invitee| [invitee.full_name, invitee.id] }, include_blank: "Use my own response" %>
+        <% end %>
+        <% @questionnaire.questions.each do |question| %>
+          <% if question.information? %>
+            <section class="question-information"><%= simple_format(question.prompt) %></section>
+          <% elsif question.visible_for?(current_answers) %>
+            <% answer = @response.answers.find { |entry| entry.question_id == question.id } %>
+            <% value = answer&.value&.fetch("answer", "") %>
+            <section>
+              <%= label_tag "answers_#{question.id}", question.prompt %>
+              <% if question.file? %>
+                <%= file_field_tag "files[#{question.id}]", accept: "application/pdf,image/*,video/*", required: question.required && !answer&.file&.attached? %>
+                <%= link_to "Current file: #{answer.file.filename}", answer.file, target: "_blank", rel: "noopener" if answer&.file&.attached? %>
+              <% elsif question.person? %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(@questionnaire.site.invitees.order(:last_name, :first_name).map { |invitee| [invitee.full_name, invitee.id] }, value), include_blank: !question.required, required: question.required %>
+              <% elsif question.long_text? %>
+                <%= text_area_tag "answers[#{question.id}]", value, required: question.required %>
+              <% elsif question.single_choice? || question.dropdown? %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, value), include_blank: !question.required, required: question.required %>
+              <% elsif question.multiple_choice? %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, Array(value)), multiple: true, required: question.required %>
+              <% elsif question.yes_no? %>
+                <%= select_tag "answers[#{question.id}]", options_for_select([["Yes", "yes"], ["No", "no"]], value), include_blank: !question.required, required: question.required %>
+              <% elsif question.date? %>
+                <%= date_field_tag "answers[#{question.id}]", value, required: question.required %>
+              <% elsif question.time? %>
+                <%= time_field_tag "answers[#{question.id}]", value, required: question.required %>
+              <% elsif question.number? || question.rating? %>
+                <%= number_field_tag "answers[#{question.id}]", value, required: question.required %>
+              <% else %>
+                <%= text_field_tag "answers[#{question.id}]", value, required: question.required %>
+              <% end %>
+            </section>
+          <% end %>
+        <% end %>
+        <%= f.submit "Save answers", class: "button" %>
+      <% end %>
+    <% end %>
+
+    <% if @result_summaries %>
+      <section class="post-card questionnaire-results">
+        <h2>Results</h2>
+        <% @result_summaries.each do |summary| %>
+          <section>
+            <h3><%= summary[:question].prompt %></h3>
+            <p><%= pluralize(summary[:response_count], "response") %></p>
+            <% if summary[:choices].any? %>
+              <ul>
+                <% summary[:choices].sort_by { |answer, _count| answer.to_s }.each do |answer, count| %>
+                  <li><strong><%= answer %></strong>: <%= count %></li>
+                <% end %>
+              </ul>
+            <% end %>
+            <% if summary[:answers].any? %>
+              <ul>
+                <% summary[:answers].each do |answer| %>
+                  <li><strong><%= answer[:respondent] %></strong>: <%= answer[:file] ? "Uploaded a file" : Array(answer[:value]).to_sentence %></li>
+                <% end %>
+              </ul>
+            <% end %>
+          </section>
+        <% end %>
+      </section>
+    <% end %>
+  </section>
+</main>

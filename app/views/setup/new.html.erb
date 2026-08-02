@@ -1,0 +1,22 @@
+<main class="form-page">
+  <section class="form-card">
+    <p class="eyebrow">First-time setup</p><h1>Create your wedding community</h1>
+    <%= form_with url: setup_path, class: "stack" do |form| %>
+      <fieldset><legend>Wedding</legend><%= form.fields_for :site, @site do |f| %>
+        <%= f.label :name, "Wedding name" %><%= f.text_field :name, required: true, autofocus: true, placeholder: "Alex & Jordan" %>
+        <%= f.label :wedding_date %><%= f.date_field :wedding_date %>
+        <%= f.label :landing_message, "Welcome message" %><%= f.text_area :landing_message, rows: 3 %>
+        <%= f.label :accent_color, "Accent color" %><%= f.color_field :accent_color %>
+        <%= f.label :access_policy, "Site access" %><%= f.select :access_policy, [["Public — visitors may read", "public_access"], ["Private — sign-in required", "private_access"]] %>
+      <% end %></fieldset>
+      <fieldset><legend>Owner account</legend><%= form.fields_for :owner, @owner do |f| %>
+        <%= f.label :display_name, "Your name" %><%= f.text_field :display_name, required: true %>
+        <%= f.label :login_identifier, "Sign-in name" %><%= f.text_field :login_identifier, required: true, autocomplete: "username" %>
+        <%= f.label :recovery_email, "Recovery email (optional)" %><%= f.email_field :recovery_email, autocomplete: "email" %>
+        <%= f.label :password %><%= f.password_field :password, required: true, autocomplete: "new-password", minlength: 12 %>
+        <%= f.label :password_confirmation, "Confirm password" %><%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 12 %>
+      <% end %></fieldset>
+      <%= form.submit "Create wedding community", class: "button" %>
+    <% end %>
+  </section>
+</main>

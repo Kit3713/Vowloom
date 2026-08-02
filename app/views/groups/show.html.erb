@@ -1,0 +1,129 @@
+<main class="community-page" style="--accent: <%= @group.site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @group.site.name, community_path, class: "brand" %>
+    <%= link_to "All groups", groups_path %>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow"><%= @group.participation.humanize %> group</p>
+    <h1><%= @group.name %></h1>
+    <%= simple_format(@group.description) %>
+
+    <% if @available_members %>
+      <section class="post-card">
+        <h2>Group members</h2>
+        <%= form_with url: group_group_memberships_path(@group), class: "inline-form" do |f| %>
+          <%= f.label :user_id, "Add a member" %>
+          <%= f.select :user_id, @available_members.reject { |member| @group.members.include?(member) }.map { |member| [member.display_name, member.id] }, include_blank: "Choose a member" %>
+          <%= f.submit "Add", class: "button button-secondary" %>
+        <% end %>
+        <% @group.group_memberships.includes(:user).each do |membership| %>
+          <p>
+            <%= membership.user.display_name %>
+            <%= button_to "Remove", group_group_membership_path(@group, membership), method: :delete, class: "text-button" unless membership.user == @group.created_by %>
+          </p>
+        <% end %>
+      </section>
+    <% end %>
+
+    <section class="post-card">
+      <h2>Tasks</h2>
+      <% if @available_members && @group.site.content_live? %>
+        <%= form_with model: [@group, @task], class: "stack" do |f| %>
+          <%= f.label :title %>
+          <%= f.text_field :title, required: true %>
+          <%= f.label :description %>
+          <%= f.text_area :description, rows: 2 %>
+          <%= f.label :assigned_user_id, "Assign to (optional)" %>
+          <%= f.select :assigned_user_id, @group.members.map { |member| [member.display_name, member.id] }, include_blank: "Unassigned" %>
+          <%= f.label :due_on %>
+          <%= f.date_field :due_on %>
+          <%= f.submit "Add task", class: "button button-secondary" %>
+        <% end %>
+      <% end %>
+      <% @tasks.each do |task| %>
+        <article class="management-row">
+          <div>
+            <strong><%= task.complete? ? "✓" : "○" %> <%= task.title %></strong><br>
+            <%= task.assigned_user&.display_name || "Unassigned" %>
+            <%= " · due #{task.due_on.to_fs(:long)}" if task.due_on %>
+          </div>
+          <% if @available_members && @group.site.content_live? %>
+            <%= button_to(task.complete? ? "Reopen" : "Complete", group_task_path(@group, task), method: :patch, class: "button button-secondary") %>
+          <% end %>
+        </article>
+        <section class="comments">
+          <% task.task_comments.each do |comment| %>
+            <p><strong><%= comment.user.display_name %></strong> <%= comment.body %></p>
+          <% end %>
+          <% if authenticated? && @group.site.content_live? %>
+            <%= form_with url: group_task_task_comments_path(@group, task), class: "comment-form" do |f| %>
+              <%= f.text_field :body, name: "task_comment[body]", required: true, placeholder: "Comment on this task" %>
+              <%= f.submit "Reply" %>
+            <% end %>
+          <% end %>
+        </section>
+      <% end %>
+      <% if @tasks.empty? %>
+        <p>No tasks yet.</p>
+      <% end %>
+    </section>
+
+    <% if authenticated? && @group.site.content_live? && (@group.discussion? || Current.user.owner? || Current.user.admin? || Current.user.helper?) %>
+      <%= form_with model: @post, class: "composer" do |f| %>
+        <%= f.hidden_field :space, value: "group_space" %>
+        <%= f.hidden_field :group_id, value: @group.id %>
+        <%= f.label :body, "Write a post" %>
+        <%= f.text_area :body, required: true, rows: 3 %>
+        <%= f.label :files, "Photos or videos (optional)" %>
+        <%= f.file_field :files, multiple: true, accept: "image/*,video/*" %>
+        <%= f.submit "Publish", class: "button" %>
+      <% end %>
+    <% end %>
+
+    <% @posts.each do |post| %>
+      <article class="post-card">
+        <header>
+          <span class="author">
+            <%= image_tag post.user.profile_photo, class: "avatar", alt: "" if post.user.profile_photo.attached? %>
+            <strong><%= post.user.display_name %></strong>
+          </span>
+          <time datetime="<%= post.published_at.iso8601 %>"><%= post.published_at.to_fs(:long) %></time>
+        </header>
+        <%= simple_format(post.body) %>
+        <section class="media-grid">
+          <% post.media_assets.where.not(status: :hidden).with_attached_file.each do |asset| %>
+            <figure>
+              <% if asset.image? %>
+                <%= image_tag asset.file.variant(resize_to_limit: [800, 800]) %>
+              <% else %>
+                <%= video_tag url_for(asset.file), controls: true %>
+              <% end %>
+              <figcaption><%= asset.caption %></figcaption>
+            </figure>
+          <% end %>
+        </section>
+        <footer>
+          <%= pluralize(post.comments.visible.count, "comment") %>
+          <%= render "moderation_reports/button", reportable: post if authenticated? && @group.site.content_live? %>
+        </footer>
+        <% if post.comments_enabled? %>
+          <section class="comments">
+            <% post.comments.visible.each do |comment| %>
+              <p>
+                <strong><%= comment.user.display_name %></strong> <%= comment.body %>
+                <%= render "moderation_reports/button", reportable: comment if authenticated? && @group.site.content_live? %>
+              </p>
+            <% end %>
+            <% if authenticated? && @group.site.content_live? %>
+              <%= form_with url: post_comments_path(post), class: "comment-form" do |f| %>
+                <%= f.text_field :body, name: "comment[body]", required: true, placeholder: "Leave a comment" %>
+                <%= f.submit "Reply" %>
+              <% end %>
+            <% end %>
+          </section>
+        <% end %>
+      </article>
+    <% end %>
+  </section>
+</main>

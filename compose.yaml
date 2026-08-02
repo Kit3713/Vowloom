@@ -1,0 +1,41 @@
+name: vowloom
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: vowloom
+      # Change this before exposing the stack beyond a local development machine.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vowloom -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  web:
+    build:
+      context: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      RAILS_ENV: production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY:-}
+      FORCE_SSL: ${FORCE_SSL:-false}
+      VOWLOOM_HOST: ${VOWLOOM_HOST:-localhost}
+      VOWLOOM_DATABASE_HOST: db
+      VOWLOOM_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-local-development-password}
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    volumes:
+      - media_data:/rails/storage
+
+volumes:
+  postgres_data:
+  media_data:

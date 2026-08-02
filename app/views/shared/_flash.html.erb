@@ -1,0 +1,10 @@
+<% if flash[:alert] %>
+  <div class="flash-region" aria-live="assertive" aria-atomic="true">
+    <p class="flash flash-alert" role="alert"><%= flash[:alert] %></p>
+  </div>
+<% end %>
+<% if flash[:notice] %>
+  <div class="flash-region" aria-live="polite" aria-atomic="true">
+    <p class="flash flash-notice" role="status"><%= flash[:notice] %></p>
+  </div>
+<% end %>

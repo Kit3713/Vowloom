@@ -1,0 +1,110 @@
+<main class="community-page" style="--accent: <%= @site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @site.name, community_path, class: "brand" %>
+    <nav>
+      <%= link_to "Main", feed_path("main") %>
+      <%= link_to "General", feed_path("general") %>
+      <%= link_to "Gallery", gallery_path %>
+    </nav>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Wedding media</p>
+    <h1>Gallery</h1>
+    <p><%= number_to_human_size(@media_bytes_used) %> of <%= number_to_human_size(@site.media_quota_bytes) %> media storage used.</p>
+
+    <% if authenticated? && @site.content_live? %>
+      <%= form_with model: @media_asset, class: "composer" do |f| %>
+        <%= f.label :file, "Upload photo or video" %>
+        <%= f.file_field :file, required: true, accept: "image/*,video/*" %>
+        <%= f.label :caption %>
+        <%= f.text_field :caption %>
+        <%= f.label :credit %>
+        <%= f.text_field :credit %>
+        <%= f.submit "Upload", class: "button" %>
+      <% end %>
+    <% end %>
+
+    <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
+      <%= form_with model: @album, class: "composer" do |f| %>
+        <%= f.label :title, "New album" %>
+        <%= f.text_field :title, required: true %>
+        <%= f.label :visibility %>
+        <%= f.select :visibility, [["Members only", "members_only"], ["Everyone", "everyone"]] %>
+        <%= f.submit "Create album", class: "button button-secondary" %>
+      <% end %>
+
+      <% unless @submitted_assets.empty? %>
+        <section class="post-card">
+          <h2>Media awaiting review</h2>
+          <% @submitted_assets.each do |asset| %>
+            <article class="post-card">
+              <p><strong><%= asset.user.display_name %></strong> uploaded <%= asset.file.filename %></p>
+              <% if asset.image? %>
+                <%= image_tag asset.file.variant(resize_to_limit: [500, 500]), class: "review-media" %>
+              <% else %>
+                <%= video_tag url_for(asset.file), controls: true, class: "review-media" %>
+              <% end %>
+              <%= form_with model: asset, class: "stack" do |f| %>
+                <%= f.label :caption %>
+                <%= f.text_field :caption %>
+                <%= f.label :credit %>
+                <%= f.text_field :credit %>
+                <%= label_tag "album_id_#{asset.id}", "Add to album (optional)" %>
+                <%= select_tag :album_id, options_from_collection_for_select(@curation_albums, :id, :title), include_blank: "Do not add to an album", id: "album_id_#{asset.id}" %>
+                <%= f.check_box :featured %>
+                <%= f.label :featured, "Feature in the Gallery" %>
+                <div class="actions">
+                  <%= f.submit "Approve", name: :moderation_action, value: "approve", class: "button button-secondary" %>
+                  <%= f.submit "Hide", name: :moderation_action, value: "hide", class: "text-button" %>
+                </div>
+              <% end %>
+            </article>
+          <% end %>
+        </section>
+      <% end %>
+    <% end %>
+
+    <% unless @media_assets.empty? %>
+      <section class="media-grid">
+        <% @media_assets.each do |asset| %>
+          <figure>
+            <% if asset.image? %>
+              <%= image_tag asset.file.variant(resize_to_limit: [800, 800]) %>
+            <% else %>
+              <%= video_tag url_for(asset.file), controls: true %>
+            <% end %>
+            <figcaption>
+              <%= asset.caption %> · <%= asset.credit.presence || asset.user.display_name %>
+              <% if authenticated? %>
+                <br><%= link_to "Download web copy", download_media_asset_path(asset) %>
+                <% if Current.user.owner? || Current.user.admin? || Current.user.helper? %>
+                  · <%= link_to "Download original", download_media_asset_path(asset, original: 1) %>
+                <% end %>
+              <% end %>
+            </figcaption>
+          </figure>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% @albums.each do |album| %>
+      <article class="post-card">
+        <h2><%= album.title %></h2>
+        <%= simple_format(album.description) %>
+        <section class="media-grid">
+          <% album.media_assets.approved.with_attached_file.each do |asset| %>
+            <figure>
+              <% if asset.image? %>
+                <%= image_tag asset.file.variant(resize_to_limit: [500, 500]) %>
+              <% else %>
+                <%= video_tag url_for(asset.file), controls: true %>
+              <% end %>
+              <figcaption><%= link_to "Download web copy", download_media_asset_path(asset) if authenticated? %></figcaption>
+            </figure>
+          <% end %>
+        </section>
+      </article>
+    <% end %>
+  </section>
+</main>

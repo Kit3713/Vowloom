@@ -1,0 +1,19 @@
+<main class="form-page"><section class="form-card">
+  <p class="eyebrow">Wedding invitation</p><h1>Create your account</h1>
+  <% if @user.errors.any? %><p class="flash flash-alert"><%= @user.errors.full_messages.to_sentence %></p><% end %>
+  <% unless @invitation_code %>
+    <%= form_with url: new_registration_path, method: :get, class: "stack" do |f| %><%= f.label :invitation_code, "Invitation code" %><%= f.text_field :invitation_code, required: true, autofocus: true, autocomplete: "one-time-code" %><%= f.submit "Continue", class: "button" %><% end %>
+  <% else %>
+    <p>Choose your name from the <strong><%= @invitation_code.household.name %></strong> invitation.</p>
+    <%= form_with url: registration_path, class: "stack" do |f| %>
+      <%= hidden_field_tag :invitation_code, params[:invitation_code] %><%= label_tag :invitee_id, "I am" %><%= select_tag :invitee_id, options_from_collection_for_select(@invitation_code.household.invitees.where.missing(:user), :id, :full_name), required: true %>
+      <%= f.fields_for :user, @user do |u| %>
+        <%= u.label :display_name, "Name shown with your posts" %><%= u.text_field :display_name, required: true %>
+        <%= u.label :login_identifier, "Sign-in name" %><%= u.text_field :login_identifier, required: true, autocomplete: "username" %>
+        <%= u.label :recovery_email, "Recovery email (optional)" %><%= u.email_field :recovery_email, autocomplete: "email" %>
+        <%= u.label :password %><%= u.password_field :password, required: true, autocomplete: "new-password", minlength: 12 %>
+        <%= u.label :password_confirmation, "Confirm password" %><%= u.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 12 %>
+      <% end %><%= f.submit "Create my account", class: "button" %>
+    <% end %>
+  <% end %>
+</section></main>

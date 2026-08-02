@@ -1,0 +1,93 @@
+<main class="community-page" style="--accent: <%= @event.site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @event.site.name, community_path, class: "brand" %>
+    <%= link_to "All events", events_path %>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Event</p>
+    <h1><%= @event.title %></h1>
+    <p><%= @event.starts_at&.to_fs(:long) || "Time to be announced" %></p>
+    <p><strong><%= @event.location_name %></strong><br><%= @event.location_address %></p>
+    <%= link_to "Open map", @event.map_url, target: "_blank", rel: "noopener" if @event.map_url.present? %>
+    <%= link_to "Add to calendar", calendar_event_path(@event) %>
+    <%= simple_format(@event.description) %>
+
+    <% invitation = Current.user&.invitee&.event_invitations&.find_by(event: @event) %>
+    <% if invitation %>
+      <section class="post-card">
+        <h2>Your RSVP</h2>
+        <p>Current response: <strong><%= invitation.rsvp_status.humanize %></strong></p>
+        <% if @event.site.content_live? %>
+          <%= form_with url: event_rsvp_path(@event), scope: :rsvp, method: :patch, class: "stack" do |f| %>
+            <%= f.label :rsvp_status, "Will you attend?" %>
+            <%= f.select :rsvp_status, [["Awaiting response", "pending"], ["Attending", "attending"], ["Declined", "declined"]], selected: invitation.rsvp_status %>
+            <% if @event.meal_options.any? %>
+              <%= f.label :meal_choice, "Meal choice" %>
+              <%= f.select :meal_choice, @event.meal_options, include_blank: "Choose a meal", selected: invitation.meal_choice %>
+            <% end %>
+            <%= f.label :dietary_notes, "Dietary notes (optional, staff-only)" %>
+            <%= f.text_area :dietary_notes, value: invitation.dietary_notes, rows: 2, maxlength: 2_000 %>
+            <%= f.label :accessibility_notes, "Accessibility notes (optional, staff-only)" %>
+            <%= f.text_area :accessibility_notes, value: invitation.accessibility_notes, rows: 2, maxlength: 2_000 %>
+            <%= f.submit "Save RSVP", class: "button" %>
+          <% end %>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if @household_invitations.many? %>
+      <section class="post-card">
+        <h2>RSVP for your household</h2>
+        <p>Save a response for each invited person. Meal and accessibility details stay attached to that person only.</p>
+        <% @household_invitations.each do |household_invitation| %>
+          <article class="management-row">
+            <div>
+              <strong><%= household_invitation.invitee.full_name %></strong><br>
+              <%= household_invitation.rsvp_status.humanize %>
+            </div>
+            <% if @event.site.content_live? %>
+              <%= form_with url: event_rsvp_path(@event), scope: :rsvp, method: :patch, class: "inline-form" do |f| %>
+                <%= f.hidden_field :invitee_id, value: household_invitation.invitee_id %>
+                <%= f.label :rsvp_status, "Response" %>
+                <%= f.select :rsvp_status, [["Awaiting", "pending"], ["Attending", "attending"], ["Declined", "declined"]], selected: household_invitation.rsvp_status %>
+                <%= f.submit "Save", class: "button button-secondary" %>
+              <% end %>
+            <% end %>
+          </article>
+        <% end %>
+      </section>
+    <% end %>
+
+    <% if @available_invitees %>
+      <section class="post-card">
+        <h2>Invitees and RSVP</h2>
+        <p>Use this area to add an invitee or record a paper, phone, or in-person response.</p>
+        <%= form_with url: event_event_invitations_path(@event), class: "inline-form" do |f| %>
+          <%= f.label :invitee_id, "Invite a person" %>
+          <%= f.select :invitee_id, @available_invitees.reject { |invitee| @event.invitees.include?(invitee) }.map { |invitee| [invitee.full_name, invitee.id] }, include_blank: "Choose an invitee" %>
+          <%= f.submit "Invite", class: "button button-secondary" %>
+        <% end %>
+        <% @event.event_invitations.includes(:invitee).order("invitees.last_name", "invitees.first_name").each do |event_invitation| %>
+          <article class="post-card">
+            <h3><%= event_invitation.invitee.full_name %></h3>
+            <%= form_with model: [@event, event_invitation], class: "stack" do |f| %>
+              <%= f.label :rsvp_status, "RSVP" %>
+              <%= f.select :rsvp_status, [["Awaiting", "pending"], ["Attending", "attending"], ["Declined", "declined"]] %>
+              <% if @event.meal_options.any? %>
+                <%= f.label :meal_choice, "Meal choice" %>
+                <%= f.select :meal_choice, @event.meal_options, include_blank: "No meal selected" %>
+              <% end %>
+              <%= f.label :dietary_notes, "Dietary notes (staff only)" %>
+              <%= f.text_area :dietary_notes, rows: 2, maxlength: 2_000 %>
+              <%= f.label :accessibility_notes, "Accessibility notes (staff only)" %>
+              <%= f.text_area :accessibility_notes, rows: 2, maxlength: 2_000 %>
+              <%= f.submit "Save RSVP", class: "button button-secondary" %>
+            <% end %>
+            <%= button_to "Remove", event_event_invitation_path(@event, event_invitation), method: :delete, class: "text-button" %>
+          </article>
+        <% end %>
+      </section>
+    <% end %>
+  </section>
+</main>

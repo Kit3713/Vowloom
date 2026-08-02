@@ -1,0 +1,35 @@
+<% content_for :title, @site ? @site.name : "Vowloom" %>
+
+<main class="cover-page" style="--accent: <%= @site&.accent_color || '#8f4f6a' %>">
+  <section class="cover-card">
+    <% if @site&.banner_image&.attached? %>
+      <%= image_tag @site.banner_image, class: "cover-banner", alt: "" %>
+    <% end %>
+    <p class="eyebrow">A private wedding community</p>
+    <h1><%= @site&.name || "Set up Vowloom" %></h1>
+
+    <% if @site&.wedding_date %>
+      <p class="date"><%= @site.wedding_date.to_fs(:long) %></p>
+    <% end %>
+
+    <p class="welcome"><%= @site&.landing_message.presence || "Share plans, celebrate together, and preserve the story." %></p>
+
+    <% if @site.nil? %>
+      <p class="setup-note">This screen becomes the wedding’s cover page after setup.</p>
+      <%= link_to "Set up the site", new_setup_path, class: "button" %>
+    <% elsif authenticated? %>
+      <div class="actions">
+        <%= link_to "Open the community", community_path, class: "button" %>
+        <%= button_to "Sign out", session_path, method: :delete, class: "button button-secondary" %>
+      </div>
+    <% else %>
+      <div class="actions">
+        <% if @site.public_access? %>
+          <%= link_to "Continue as visitor", community_path, class: "button" %>
+        <% end %>
+        <%= link_to "Sign in", new_session_path, class: "button button-secondary" %>
+      </div>
+      <p class="invite-note"><%= link_to "Create an account", new_registration_path %> with your wedding invitation code.</p>
+    <% end %>
+  </section>
+</main>

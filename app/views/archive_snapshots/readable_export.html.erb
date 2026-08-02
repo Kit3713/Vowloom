@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><%= @payload.dig(:site, :name) %> — preserved wedding archive</title>
+    <style>
+      :root { color-scheme: light; --accent: <%= @payload.dig(:site, :accent_color) %>; }
+      * { box-sizing: border-box; }
+      body { color: #1e1b1d; font: 16px/1.55 system-ui, sans-serif; margin: 0 auto; max-width: 54rem; padding: 2rem; }
+      h1, h2, h3 { line-height: 1.18; } h1 { border-bottom: .3rem solid var(--accent); padding-bottom: .75rem; }
+      section, article { break-inside: avoid; border-bottom: 1px solid #ddd; padding: 1.25rem 0; }
+      .meta, .notice { color: #5a5357; } .notice { background: #f6f2f4; border-left: .25rem solid var(--accent); padding: .75rem 1rem; }
+      .space { color: #5a5357; font-size: .9rem; text-transform: capitalize; } .comment { border-left: .2rem solid #ddd; margin: 1rem 0; padding-left: 1rem; }
+      ul { padding-left: 1.25rem; } code { overflow-wrap: anywhere; }
+      @media print { body { max-width: none; padding: .5in; } a { color: inherit; text-decoration: none; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="meta">Vowloom preserved wedding archive · <%= @include_private ? "complete Owner export" : "public-safe export" %></p>
+      <h1><%= @payload.dig(:site, :name) %></h1>
+      <% if @payload.dig(:site, :wedding_date).present? %><p>Wedding date: <%= @payload.dig(:site, :wedding_date) %></p><% end %>
+      <% if @payload.dig(:site, :landing_message).present? %><p><%= @payload.dig(:site, :landing_message) %></p><% end %>
+      <p class="notice">This is a standalone, script-free reading copy created <%= @payload.fetch(:generated_at) %>. It records text and media metadata. Keep it with the matching JSON manifest, database backup, and Active Storage media backup to preserve original files.</p>
+      <p class="meta">Snapshot checksum: <code><%= @payload.fetch(:checksum, "Legacy snapshot; verify its accompanying JSON manifest") %></code></p>
+    </header>
+
+    <section>
+      <h2>Contents</h2>
+      <ul><% @payload.fetch(:content_counts).each do |name, count| %><li><%= count %> <%= name.to_s.humanize.downcase %></li><% end %></ul>
+      <p class="meta"><%= @payload.fetch(:privacy) %>.</p>
+    </section>
+
+    <section>
+      <h2>Schedule</h2>
+      <% if @payload.fetch(:events).any? %><% @payload.fetch(:events).each do |event| %><article><h3><%= event.fetch(:title) %></h3><p><%= event[:starts_at].presence || "Time to be announced" %><% if event[:ends_at].present? %> – <%= event[:ends_at] %><% end %></p><% if event[:location_name].present? %><p><%= event[:location_name] %><% if event[:location_address].present? %> · <%= event[:location_address] %><% end %></p><% end %><% if event[:description].present? %><p><%= event[:description] %></p><% end %></article><% end %><% else %><p>No events were included in this export.</p><% end %>
+    </section>
+
+    <section>
+      <h2>Groups</h2>
+      <% if @payload.fetch(:groups).any? %><ul><% @payload.fetch(:groups).each do |group| %><li><strong><%= group.fetch(:name) %></strong> (<%= group.fetch(:participation) %>)<% if group[:description].present? %> — <%= group[:description] %><% end %></li><% end %></ul><% else %><p>No groups were included in this export.</p><% end %>
+    </section>
+
+    <main>
+      <h2>Community history</h2>
+      <% if @payload.fetch(:posts).any? %><% @payload.fetch(:posts).each do |post| %><article><p class="space"><%= post.fetch(:space).humanize %></p><% if post[:title].present? %><h3><%= post[:title] %></h3><% end %><p class="meta"><%= post.fetch(:author) %> · <%= post[:published_at] %></p><div><%= simple_format(post.fetch(:body)) %></div><% post.fetch(:comments).each do |comment| %><div class="comment"><p class="meta"><%= comment.fetch(:author) %> · <%= comment[:created_at] %></p><div><%= simple_format(comment.fetch(:body)) %></div></div><% end %></article><% end %><% else %><p>No posts were included in this export.</p><% end %>
+    </main>
+
+    <section>
+      <h2>Media record</h2>
+      <% if @payload.fetch(:media).any? %><ul><% @payload.fetch(:media).each do |media| %><li><strong><%= media.fetch(:filename) %></strong> · <%= number_to_human_size(media.fetch(:byte_size)) %> · SHA-style storage checksum <code><%= media.fetch(:checksum) %></code><% if media[:caption].present? %> — <%= media[:caption] %><% end %></li><% end %></ul><% else %><p>No approved media was included in this export.</p><% end %>
+    </section>
+  </body>
+</html>

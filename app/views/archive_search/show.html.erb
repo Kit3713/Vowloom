@@ -1,0 +1,36 @@
+<main class="community-page" style="--accent: <%= @site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @site.name, community_path, class: "brand" %>
+    <%= link_to "Community", community_path %>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Preserved history</p>
+    <h1>Search the wedding archive</h1>
+    <p>This archive is read-only. Search finds posts and their original context while keeping private content private.</p>
+    <%= form_with url: archive_search_path, method: :get, class: "search-form", role: "search" do |f| %>
+      <%= f.label :q, "Search posts" %>
+      <%= f.search_field :q, value: @query, maxlength: 200, autofocus: true, required: true, placeholder: "Try a name, place, or memory" %>
+      <%= f.submit "Search", class: "button" %>
+    <% end %>
+
+    <% if @query.present? %>
+      <p><%= pluralize(@results.length, "result") %> for <strong><%= @query %></strong>.</p>
+      <% @results.each do |post| %>
+        <article class="post-card">
+          <header>
+            <strong><%= post.user.display_name %></strong>
+            <time datetime="<%= post.published_at.iso8601 %>"><%= post.published_at.to_fs(:long) %></time>
+          </header>
+          <p class="eyebrow"><%= post.group&.name || post.space.humanize %></p>
+          <h2><%= post.title %></h2>
+          <%= simple_format(post.body) %>
+          <p><%= pluralize(post.comments.visible.count, "comment") %></p>
+        </article>
+      <% end %>
+      <% if @results.empty? %>
+        <section class="empty-surface"><h2>No matching posts</h2><p>Try another name, location, or phrase from the wedding.</p></section>
+      <% end %>
+    <% end %>
+  </section>
+</main>

@@ -1,0 +1,55 @@
+<% content_for :head do %>
+  <meta http-equiv="refresh" content="<%= @display.refresh_seconds %>">
+<% end %>
+
+<main class="kiosk-page kiosk-<%= @display.mode %>" style="--accent: <%= @site.accent_color %>" data-refresh-seconds="<%= @display.refresh_seconds %>">
+  <header>
+    <p><%= @site.name %></p>
+    <h1><%= @display.name %></h1>
+  </header>
+
+  <% if @display.show_qr_placeholder? %>
+    <p class="kiosk-join">Join the wedding community on your phone.</p>
+  <% end %>
+
+  <% if @display.schedule? || @display.mixed? %>
+    <section class="kiosk-schedule" aria-label="Wedding schedule">
+      <h2><%= @display.schedule? ? "Now and next" : "Coming up" %></h2>
+      <% if @current_event %>
+        <article class="kiosk-now"><span>Now</span><strong><%= @current_event.title %></strong><p><%= @current_event.location_name.presence || "Location to be announced" %></p></article>
+      <% end %>
+      <% if @next_event %>
+        <article><span><%= @current_event ? "Next" : "Up next" %></span><strong><%= @next_event.title %></strong><p><%= @next_event.starts_at.to_fs(:short) %><%= " · #{@next_event.location_name}" if @next_event.location_name.present? %></p></article>
+      <% elsif @current_event.blank? %>
+        <p>No upcoming public events are scheduled yet.</p>
+      <% end %>
+      <% if @display.schedule? %>
+        <% @events.drop(1).each do |event| %><article><strong><%= event.title %></strong><span><%= event.starts_at.to_fs(:short) %><%= " · #{event.location_name}" if event.location_name.present? %></span></article><% end %>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if @display.information? || @display.mixed? %>
+    <section class="kiosk-information" aria-label="Announcements">
+      <h2>Announcements</h2>
+      <% @announcements.each do |post| %><article><strong><%= post.title.presence || post.user.display_name %></strong><span><%= truncate(post.body, length: 180) %></span></article><% end %>
+      <% if @announcements.empty? %><p>No public announcements yet.</p><% end %>
+    </section>
+  <% end %>
+
+  <% if @display.slideshow? %>
+    <section class="kiosk-slideshow" aria-label="Featured photo slideshow">
+      <% if @slideshow_asset %>
+        <% if @slideshow_asset.image? %><%= image_tag @slideshow_asset.file.variant(resize_to_limit: [1800, 1200]), alt: @slideshow_asset.caption.presence || "Featured wedding photo" %><% else %><%= video_tag url_for(@slideshow_asset.file), autoplay: true, muted: true, loop: true %><% end %>
+        <p><%= @slideshow_asset.caption.presence || @slideshow_asset.credit.presence || "Featured wedding moment" %></p>
+      <% else %>
+        <p>Featured photos will appear here once they are approved.</p>
+      <% end %>
+    </section>
+  <% elsif @display.gallery? || @display.mixed? %>
+    <section class="kiosk-media" aria-label="Featured wedding photos">
+      <% @media_assets.each do |asset| %><% if asset.image? %><%= image_tag asset.file.variant(resize_to_limit: [1200, 900]), alt: asset.caption.presence || "Featured wedding photo" %><% else %><%= video_tag url_for(asset.file), autoplay: true, muted: true, loop: true %><% end %><% end %>
+      <% if @media_assets.empty? %><p>No featured photos yet.</p><% end %>
+    </section>
+  <% end %>
+</main>

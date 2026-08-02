@@ -1,0 +1,8 @@
+<main class="community-page" style="--accent: <%= current_site.accent_color %>">
+  <header class="community-header"><%= link_to current_site.name, community_path, class: "brand" %><%= link_to "Community", community_path %></header>
+  <section class="feed-shell"><p class="eyebrow">Private support</p><h1>Couple Inbox</h1><p>Only you and the couple’s Owner/Admin team can see these conversations.</p>
+    <% if current_site.content_live? && !site_manager? %><%= form_with model: @conversation, url: couple_inbox_path, class: "composer" do |f| %><%= f.label :title, "Subject" %><%= f.text_field :title, required: true %><%= f.label :body, "Message" %><%= f.text_area :body, required: true, rows: 4 %><%= f.submit "Send privately", class: "button" %><% end %><% end %>
+    <% @conversations.each do |conversation| %><article class="post-card"><h2><%= link_to conversation.title.presence || "Conversation", couple_inbox_conversation_path(conversation) %></h2><p><%= truncate(conversation.body, length: 180) %></p><footer><%= site_manager? ? conversation.user.display_name : "Private conversation" %> · <%= conversation.published_at.to_fs(:long) %></footer></article><% end %>
+    <% if @conversations.empty? %><p>No private conversations yet.</p><% end %>
+  </section>
+</main>

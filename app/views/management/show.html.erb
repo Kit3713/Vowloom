@@ -1,0 +1,23 @@
+<main class="community-page" style="--accent: <%= @site.accent_color %>">
+  <header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><%= link_to "Back to community", community_path %></header>
+  <section class="feed-shell">
+    <p class="eyebrow">Owner controls</p><h1>Manage Vowloom</h1><p><%= link_to "Archive snapshots and content exports", archive_snapshots_path %></p>
+    <%= form_with model: @site, url: management_path, method: :patch, class: "composer" do |f| %>
+      <h2>Cover page and access</h2>
+      <%= f.label :name, "Wedding name" %><%= f.text_field :name, required: true %>
+      <%= f.label :wedding_date %><%= f.date_field :wedding_date %>
+      <%= f.label :landing_message %><%= f.text_area :landing_message, rows: 3 %>
+      <%= f.label :accent_color %><%= f.color_field :accent_color %>
+      <%= f.label :banner_image, "Banner photo (optional)" %><%= f.file_field :banner_image, accept: "image/*" %>
+      <%= f.label :media_quota_gigabytes, "Media storage limit (GB)" %><%= f.number_field :media_quota_gigabytes, min: 0.01, step: 0.01 %>
+      <%= f.label :access_policy, "Website access" %><%= f.select :access_policy, [["Public — visitors can browse", "public_access"], ["Private — invitation sign-in required", "private_access"]] %>
+      <%= f.label :content_state, "Community state" %><%= f.select :content_state, [["Live — members can participate", "live"], ["Frozen — read-only archive", "frozen"]] %>
+      <%= f.submit "Save owner settings", class: "button" %>
+    <% end %>
+    <%= form_with model: @household, class: "composer" do |f| %><h2>Add household</h2><%= f.label :name, "Household name" %><%= f.text_field :name, required: true %><%= f.submit "Add household", class: "button button-secondary" %><% end %>
+    <%= form_with model: @invitee, class: "composer" do |f| %><h2>Add guest</h2><%= f.label :first_name %><%= f.text_field :first_name, required: true %><%= f.label :last_name %><%= f.text_field :last_name, required: true %><%= f.label :household_id, "Household (optional)" %><%= f.select :household_id, @households.map { |household| [household.name, household.id] }, include_blank: "No household" %><%= f.label :email, "Email (optional)" %><%= f.email_field :email %><%= f.label :phone, "Phone (optional)" %><%= f.telephone_field :phone %><%= f.submit "Add guest", class: "button button-secondary" %><% end %>
+    <%= form_with url: import_invitees_path, multipart: true, class: "composer" do |f| %><h2>Import guest list</h2><p>Upload CSV columns: <code>household, first_name, last_name, email, phone</code>. Existing guests with the same name and household are updated.</p><%= f.label :file, "Guest CSV" %><%= f.file_field :file, accept: ".csv,text/csv", required: true %><%= f.submit "Import CSV", class: "button button-secondary" %><% end %><p><%= link_to "Download guest CSV", export_invitees_path %></p>
+    <section class="post-card"><h2>Trusted team</h2><p>Admins can manage the site. Helpers can publish, coordinate groups, and curate media; they do not automatically receive Couple Inbox or private-group access.</p><% @users.each do |user| %><article class="management-row"><strong><%= user.display_name %> · <%= user.role.humanize %></strong><% unless user.owner? %><%= form_with model: user, class: "inline-form" do |f| %><%= f.label :role, "Role" %><%= f.select :role, [["Admin", "admin"], ["Helper", "helper"], ["Member", "member"]] %><%= f.submit "Update role", class: "button button-secondary" %><% end %><% end %></article><% end %></section>
+    <section class="post-card"><h2>Guest list and invitation codes</h2><% @households.each do |household| %><article class="management-row"><div><strong><%= household.name %></strong><br><%= household.invitees.map(&:full_name).join(", ").presence || "No guests yet" %></div><%= form_with url: invitation_codes_path, class: "inline-form" do |f| %><%= f.hidden_field :household_id, value: household.id %><%= f.label :expires_at, "Expires (optional)" %><%= f.datetime_local_field :expires_at %><%= f.submit "Create code", class: "button button-secondary" %><% end %></article><% end %><% if @households.empty? %><p>Add a household first, then invite the people in it.</p><% end %></section>
+  </section>
+</main>
