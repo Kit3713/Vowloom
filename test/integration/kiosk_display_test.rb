@@ -35,6 +35,37 @@ class KioskDisplayTest < ActionDispatch::IntegrationTest
     assert_not_predicate @display, :show_qr_placeholder?
   end
 
+  test "questionnaire-results kiosk shows aggregate choice counts without individual or free-text answers" do
+    member = @site.users.create!(display_name: "Member", login_identifier: "member-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123")
+    questionnaire = @site.questionnaires.create!(title: "Reception song poll", created_by: @owner, status: :published, results_visibility: :aggregate)
+    choice_question = questionnaire.questions.create!(position: 1, kind: :single_choice, prompt: "Pick a song", options: [ "Song A", "Song B" ])
+    text_question = questionnaire.questions.create!(position: 2, kind: :long_text, prompt: "Private note")
+    response = questionnaire.responses.create!(user: member, submitted_at: Time.current)
+    response.answers.create!(question: choice_question, value: { "answer" => "Song A" })
+    response.answers.create!(question: text_question, value: { "answer" => "Do not show this" })
+    @site.questionnaires.create!(title: "Staff notes", created_by: @owner, status: :published, results_visibility: :staff_only)
+
+    @display.update!(mode: :questionnaire_results, questionnaire: questionnaire)
+    get public_display_path(@display.access_token)
+
+    assert_response :success
+    assert_select "main.kiosk-page.kiosk-questionnaire_results"
+    assert_select ".kiosk-questionnaire-results", text: /Reception song poll/
+    assert_select ".kiosk-questionnaire-results li", text: /Song A: 1/
+    assert_select "body", text: /Member/, count: 0
+    assert_select "body", text: /Do not show this/, count: 0
+    assert_select "body", text: /Staff notes/, count: 0
+  end
+
+  test "results display requires a published aggregate questionnaire" do
+    staff_only_questionnaire = @site.questionnaires.create!(title: "Staff notes", created_by: @owner, status: :published, results_visibility: :staff_only)
+
+    @display.assign_attributes(mode: :questionnaire_results, questionnaire: staff_only_questionnaire)
+
+    assert_not_predicate @display, :valid?
+    assert_includes @display.errors[:questionnaire], "must be a published, site-wide aggregate-results questionnaire from this site"
+  end
+
   private
 
   def sign_in(user)

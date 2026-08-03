@@ -1,4 +1,5 @@
 class MediaAssetsController < ApplicationController
+  allow_unauthenticated_access only: :download
   before_action :require_live_site!, except: :download
 
   def create
@@ -25,7 +26,10 @@ class MediaAssetsController < ApplicationController
   end
 
   def download
+    return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if current_site.private_access? && !authenticated?
+
     media_asset = current_site.media_assets.approved.with_attached_file.find(params[:id])
+    return redirect_to(gallery_path, alert: "That media is not available to you.") unless media_asset.accessible_to?(Current.user)
     if params[:original] == "1"
       return redirect_to(gallery_path, alert: "Only staff can download original files.") unless staff?
 

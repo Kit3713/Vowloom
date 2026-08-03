@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_023000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -209,12 +209,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_023000) do
     t.boolean "enabled", default: true, null: false
     t.integer "mode", default: 0, null: false
     t.string "name", null: false
+    t.bigint "questionnaire_id"
     t.integer "refresh_seconds", default: 60, null: false
     t.boolean "show_qr_placeholder", default: true, null: false
     t.bigint "site_id", null: false
     t.datetime "updated_at", null: false
     t.index ["access_token"], name: "index_kiosk_displays_on_access_token", unique: true
     t.index ["created_by_id"], name: "index_kiosk_displays_on_created_by_id"
+    t.index ["questionnaire_id"], name: "index_kiosk_displays_on_questionnaire_id"
     t.index ["site_id"], name: "index_kiosk_displays_on_site_id"
   end
 
@@ -444,6 +446,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_023000) do
     t.datetime "updated_at", null: false
     t.index ["invitee_id"], name: "index_users_on_invitee_id", unique: true
     t.index ["login_identifier"], name: "index_users_on_login_identifier", unique: true
+    t.index ["site_id"], name: "index_users_on_one_owner_per_site", unique: true, where: "(role = 0)"
     t.index ["site_id"], name: "index_users_on_site_id"
   end
 
@@ -473,6 +476,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_023000) do
   add_foreign_key "invitation_codes", "sites"
   add_foreign_key "invitees", "households"
   add_foreign_key "invitees", "sites"
+  add_foreign_key "kiosk_displays", "questionnaires"
   add_foreign_key "kiosk_displays", "sites"
   add_foreign_key "kiosk_displays", "users", column: "created_by_id"
   add_foreign_key "media_assets", "events"

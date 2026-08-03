@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token, only: %i[ new create edit update ]
   resource :setup, controller: "setup", only: %i[ new create ]
   resource :management, controller: "management", only: %i[show update]
+  post "management/transfer-ownership", to: "management#transfer_ownership", as: :transfer_management_ownership
   resources :archive_snapshots, only: :index do
     get :export, on: :member
     get :readable_export, on: :member
@@ -60,7 +61,7 @@ Rails.application.routes.draw do
   resources :media_assets, only: %i[create update] do
     get :download, on: :member
   end
-  resource :chat, only: %i[show create]
+  resource :chat, only: %i[show create], controller: "chat"
   get "inbox", to: "couple_inboxes#index", as: :couple_inbox
   post "inbox", to: "couple_inboxes#create"
   get "inbox/:id", to: "couple_inboxes#show", as: :couple_inbox_conversation

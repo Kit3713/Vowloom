@@ -5,7 +5,9 @@
     <p>Displays are read-only public presentations. They show only approved featured media, site-wide events, and public Main announcements.</p>
     <%= form_with model: @display, class: "composer" do |f| %>
       <%= f.label :name %><%= f.text_field :name, required: true %>
-      <%= f.label :mode, "Preset" %><%= f.select :mode, [["Mixed information and media", "mixed"], ["Gallery photo wall", "gallery"], ["Gallery slideshow", "slideshow"], ["Event schedule / now and next", "schedule"], ["Pinned information board", "information"]] %>
+      <%= f.label :mode, "Preset" %><%= f.select :mode, [["Mixed information and media", "mixed"], ["Gallery photo wall", "gallery"], ["Gallery slideshow", "slideshow"], ["Event schedule / now and next", "schedule"], ["Pinned information board", "information"], ["Live aggregate questionnaire results", "questionnaire_results"]] %>
+      <%= f.label :questionnaire_id, "Questionnaire for results display" %><%= f.select :questionnaire_id, @aggregate_questionnaires.map { |questionnaire| [questionnaire.title, questionnaire.id] }, include_blank: "Choose a published aggregate questionnaire" %>
+      <p class="muted">The results preset shows predefined-answer counts only. It never shows names, written answers, uploads, or RSVP information.</p>
       <%= f.label :refresh_seconds, "Refresh every (seconds)" %><%= f.number_field :refresh_seconds, value: 60, min: 10, max: 3600, required: true %>
       <span><%= f.check_box :show_qr_placeholder %><%= f.label :show_qr_placeholder, "Show a join reminder" %></span>
       <%= f.submit "Create display", class: "button" %>
@@ -16,7 +18,8 @@
         <p><%= link_to public_display_url(display.access_token), public_display_path(display.access_token), target: "_blank", rel: "noopener" if display.enabled? %></p>
         <% if authenticated? && (Current.user.owner? || Current.user.admin?) %>
           <%= form_with model: display, class: "inline-form" do |f| %>
-            <%= f.label :mode, "Preset" %><%= f.select :mode, [["Mixed", "mixed"], ["Photo wall", "gallery"], ["Slideshow", "slideshow"], ["Schedule", "schedule"], ["Information", "information"]] %>
+            <%= f.label :mode, "Preset" %><%= f.select :mode, [["Mixed", "mixed"], ["Photo wall", "gallery"], ["Slideshow", "slideshow"], ["Schedule", "schedule"], ["Information", "information"], ["Aggregate questionnaire results", "questionnaire_results"]] %>
+            <%= f.label :questionnaire_id, "Questionnaire" %><%= f.select :questionnaire_id, @aggregate_questionnaires.map { |questionnaire| [questionnaire.title, questionnaire.id] }, include_blank: "Choose a published aggregate questionnaire" %>
             <%= f.label :refresh_seconds, "Seconds" %><%= f.number_field :refresh_seconds, min: 10, max: 3600, required: true %>
             <%= f.check_box :show_qr_placeholder %><%= f.label :show_qr_placeholder, "Join reminder" %>
             <%= f.hidden_field :enabled, value: display.enabled? %><%= f.submit "Save display", class: "button button-secondary" %>

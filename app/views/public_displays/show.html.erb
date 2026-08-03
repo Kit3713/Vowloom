@@ -37,6 +37,31 @@
     </section>
   <% end %>
 
+  <% if @display.questionnaire_results? %>
+    <section class="kiosk-questionnaire-results" aria-label="Live questionnaire results">
+      <% if @questionnaire %>
+        <h2><%= @questionnaire.title %></h2>
+        <% if @questionnaire_results.any? %>
+          <% @questionnaire_results.each do |result| %>
+            <article>
+              <strong><%= result[:question] %></strong>
+              <span><%= pluralize(result[:response_count], "response") %></span>
+            </article>
+            <ul>
+              <% result[:choices].each do |choice, count| %>
+                <li><strong><%= choice %></strong>: <%= count %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        <% else %>
+          <p>This questionnaire does not have display-safe result questions yet.</p>
+        <% end %>
+      <% else %>
+        <p>Results will appear when a published aggregate questionnaire is selected.</p>
+      <% end %>
+    </section>
+  <% end %>
+
   <% if @display.slideshow? %>
     <section class="kiosk-slideshow" aria-label="Featured photo slideshow">
       <% if @slideshow_asset %>

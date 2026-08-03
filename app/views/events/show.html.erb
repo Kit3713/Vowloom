@@ -14,12 +14,12 @@
     <%= simple_format(@event.description) %>
 
     <% invitation = Current.user&.invitee&.event_invitations&.find_by(event: @event) %>
-    <% if invitation %>
+    <% if invitation && !@household_invitations.many? %>
       <section class="post-card">
         <h2>Your RSVP</h2>
         <p>Current response: <strong><%= invitation.rsvp_status.humanize %></strong></p>
         <% if @event.site.content_live? %>
-          <%= form_with url: event_rsvp_path(@event), scope: :rsvp, method: :patch, class: "stack" do |f| %>
+          <%= form_with url: event_rsvp_path(@event), scope: :rsvp, namespace: "own_rsvp", method: :patch, class: "stack" do |f| %>
             <%= f.label :rsvp_status, "Will you attend?" %>
             <%= f.select :rsvp_status, [["Awaiting response", "pending"], ["Attending", "attending"], ["Declined", "declined"]], selected: invitation.rsvp_status %>
             <% if @event.meal_options.any? %>
@@ -39,20 +39,31 @@
     <% if @household_invitations.many? %>
       <section class="post-card">
         <h2>RSVP for your household</h2>
-        <p>Save a response for each invited person. Meal and accessibility details stay attached to that person only.</p>
+        <p>Save a response for each invited person. Meal, dietary, and accessibility details stay attached to that person only and are visible to the wedding staff.</p>
         <% @household_invitations.each do |household_invitation| %>
           <article class="management-row">
-            <div>
-              <strong><%= household_invitation.invitee.full_name %></strong><br>
-              <%= household_invitation.rsvp_status.humanize %>
-            </div>
             <% if @event.site.content_live? %>
-              <%= form_with url: event_rsvp_path(@event), scope: :rsvp, method: :patch, class: "inline-form" do |f| %>
+              <%= form_with url: event_rsvp_path(@event), scope: :rsvp, namespace: "household_rsvp_#{household_invitation.id}", method: :patch, class: "stack" do |f| %>
                 <%= f.hidden_field :invitee_id, value: household_invitation.invitee_id %>
+                <h3><%= household_invitation.invitee.full_name %></h3>
+                <p>Current response: <strong><%= household_invitation.rsvp_status.humanize %></strong></p>
                 <%= f.label :rsvp_status, "Response" %>
                 <%= f.select :rsvp_status, [["Awaiting", "pending"], ["Attending", "attending"], ["Declined", "declined"]], selected: household_invitation.rsvp_status %>
+                <% if @event.meal_options.any? %>
+                  <%= f.label :meal_choice, "Meal choice" %>
+                  <%= f.select :meal_choice, @event.meal_options, include_blank: "Choose a meal", selected: household_invitation.meal_choice %>
+                <% end %>
+                <%= f.label :dietary_notes, "Dietary notes (optional, staff-only)" %>
+                <%= f.text_area :dietary_notes, value: household_invitation.dietary_notes, rows: 2, maxlength: 2_000 %>
+                <%= f.label :accessibility_notes, "Accessibility notes (optional, staff-only)" %>
+                <%= f.text_area :accessibility_notes, value: household_invitation.accessibility_notes, rows: 2, maxlength: 2_000 %>
                 <%= f.submit "Save", class: "button button-secondary" %>
               <% end %>
+            <% else %>
+              <div>
+                <strong><%= household_invitation.invitee.full_name %></strong><br>
+                <%= household_invitation.rsvp_status.humanize %>
+              </div>
             <% end %>
           </article>
         <% end %>

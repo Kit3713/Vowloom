@@ -3,6 +3,7 @@ class QuestionnaireResponsesController < ApplicationController
 
   def create
     questionnaire = current_site.questionnaires.find(params[:questionnaire_id])
+    return redirect_to(questionnaire, alert: "This questionnaire is not available to you.") unless questionnaire.available_to?(Current.user)
     return redirect_to(questionnaire, alert: "This questionnaire is closed.") unless questionnaire.open_for_responses?
 
     response = response_for(questionnaire)

@@ -29,6 +29,15 @@ class ManagementController < ApplicationController
     end
   end
 
+  def transfer_ownership
+    @site = current_site
+    new_owner = @site.users.find(params.require(:target_user_id))
+    _previous_owner, new_owner = @site.transfer_ownership!(from: Current.user, to: new_owner)
+    redirect_to community_path, notice: "Ownership transferred to #{new_owner.display_name}. You remain an administrator."
+  rescue ActionController::ParameterMissing, ActiveRecord::RecordNotFound, Site::OwnershipTransferError => error
+    redirect_to management_path, alert: "Ownership transfer was not completed: #{error.message}"
+  end
+
   private
 
   def require_owner!

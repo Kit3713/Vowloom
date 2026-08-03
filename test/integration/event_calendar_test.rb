@@ -55,17 +55,60 @@ class EventCalendarTest < ActionDispatch::IntegrationTest
     assert_equal "No dairy", invitation.dietary_notes
   end
 
-  test "an invited member can submit an RSVP for another person in their household" do
+  test "an invited member can submit a complete RSVP for another person in their household" do
     household = @site.households.create!(name: "Guest household")
     primary = @site.invitees.create!(first_name: "Jamie", last_name: "Guest", household:)
     partner = @site.invitees.create!(first_name: "Alex", last_name: "Guest", household:)
     member = @site.users.create!(display_name: "Jamie", login_identifier: "jamie-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", invitee: primary)
+    @event.update!(meal_options: [ "Chicken", "Vegetarian" ])
     @event.event_invitations.create!(invitee: primary)
     partner_invitation = @event.event_invitations.create!(invitee: partner)
     post session_path, params: { login_identifier: member.login_identifier, password: "password123" }
 
-    patch event_rsvp_path(@event), params: { rsvp: { invitee_id: partner.id, rsvp_status: "attending" } }
+    patch event_rsvp_path(@event), params: {
+      rsvp: {
+        invitee_id: partner.id,
+        rsvp_status: "attending",
+        meal_choice: "Vegetarian",
+        dietary_notes: "No dairy",
+        accessibility_notes: "Please reserve an aisle seat"
+      }
+    }
 
-    assert_predicate partner_invitation.reload, :attending?
+    partner_invitation.reload
+    assert_predicate partner_invitation, :attending?
+    assert_equal "Vegetarian", partner_invitation.meal_choice
+    assert_equal "No dairy", partner_invitation.dietary_notes
+    assert_equal "Please reserve an aisle seat", partner_invitation.accessibility_notes
+
+    get event_path(@event)
+
+    assert_response :success
+    assert_select "h3", text: "Alex Guest"
+    assert_select "select[name='rsvp[meal_choice]']", count: 2
+    assert_select "textarea[name='rsvp[dietary_notes]']", text: "No dairy"
+    assert_select "textarea[name='rsvp[accessibility_notes]']", text: "Please reserve an aisle seat"
+  end
+
+  test "a member cannot submit RSVP details for someone outside their household" do
+    household = @site.households.create!(name: "Guest household")
+    primary = @site.invitees.create!(first_name: "Jamie", last_name: "Guest", household:)
+    other_invitee = @site.invitees.create!(first_name: "Morgan", last_name: "Other")
+    member = @site.users.create!(display_name: "Jamie", login_identifier: "jamie-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", invitee: primary)
+    @event.update!(meal_options: [ "Chicken", "Vegetarian" ])
+    @event.event_invitations.create!(invitee: primary)
+    other_invitation = @event.event_invitations.create!(invitee: other_invitee)
+    post session_path, params: { login_identifier: member.login_identifier, password: "password123" }
+
+    patch event_rsvp_path(@event), params: {
+      rsvp: { invitee_id: other_invitee.id, rsvp_status: "attending", meal_choice: "Vegetarian", dietary_notes: "Do not change" }
+    }
+
+    assert_redirected_to events_path
+    assert_equal "You are not invited to that event.", flash[:alert]
+    other_invitation.reload
+    assert_predicate other_invitation, :pending?
+    assert_nil other_invitation.meal_choice
+    assert_nil other_invitation.dietary_notes
   end
 end

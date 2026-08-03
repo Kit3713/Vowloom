@@ -93,7 +93,7 @@
         <h2><%= album.title %></h2>
         <%= simple_format(album.description) %>
         <section class="media-grid">
-          <% album.media_assets.approved.with_attached_file.each do |asset| %>
+          <% album.media_assets.approved.with_attached_file.select { |asset| asset.accessible_to?(Current.user) }.each do |asset| %>
             <figure>
               <% if asset.image? %>
                 <%= image_tag asset.file.variant(resize_to_limit: [500, 500]) %>

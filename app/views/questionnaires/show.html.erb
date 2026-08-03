@@ -86,7 +86,7 @@
 
     <% if authenticated? && @questionnaire.open_for_responses? %>
       <% current_answers = @response.answers.index_by(&:question_id).transform_values { |answer| answer.value.fetch("answer", nil) } %>
-      <%= form_with url: questionnaire_response_path(@questionnaire), class: "composer" do |f| %>
+      <%= form_with url: questionnaire_response_path(@questionnaire), class: "composer", data: { questionnaire_form: true } do |f| %>
         <% if @staff_entry_invitees %>
           <%= f.label :staff_invitee_id, "Record on behalf of (staff only, optional)" %>
           <%= f.select :staff_invitee_id, @staff_entry_invitees.map { |invitee| [invitee.full_name, invitee.id] }, include_blank: "Use my own response" %>
@@ -94,32 +94,34 @@
         <% @questionnaire.questions.each do |question| %>
           <% if question.information? %>
             <section class="question-information"><%= simple_format(question.prompt) %></section>
-          <% elsif question.visible_for?(current_answers) %>
+          <% else %>
             <% answer = @response.answers.find { |entry| entry.question_id == question.id } %>
             <% value = answer&.value&.fetch("answer", "") %>
-            <section>
+            <% initially_visible = question.visible_for?(current_answers) %>
+            <% field_options = { required: question.required, disabled: question.conditional? && !initially_visible, data: { questionnaire_question_input: question.id } } %>
+            <section class="questionnaire-question" data-questionnaire-question-id="<%= question.id %>"<% if question.conditional? %> data-questionnaire-conditional-question-id="<%= question.conditional_rule.fetch("question_id") %>" data-questionnaire-conditional-value="<%= question.conditional_rule.fetch("equals") %>"<% end %><%= " hidden" if question.conditional? && !initially_visible %>>
               <%= label_tag "answers_#{question.id}", question.prompt %>
               <% if question.file? %>
-                <%= file_field_tag "files[#{question.id}]", accept: "application/pdf,image/*,video/*", required: question.required && !answer&.file&.attached? %>
+                <%= file_field_tag "files[#{question.id}]", accept: "application/pdf,image/*,video/*", **field_options.merge(required: question.required && !answer&.file&.attached?) %>
                 <%= link_to "Current file: #{answer.file.filename}", answer.file, target: "_blank", rel: "noopener" if answer&.file&.attached? %>
               <% elsif question.person? %>
-                <%= select_tag "answers[#{question.id}]", options_for_select(@questionnaire.site.invitees.order(:last_name, :first_name).map { |invitee| [invitee.full_name, invitee.id] }, value), include_blank: !question.required, required: question.required %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(@questionnaire.site.invitees.order(:last_name, :first_name).map { |invitee| [invitee.full_name, invitee.id] }, value), **field_options.merge(include_blank: !question.required) %>
               <% elsif question.long_text? %>
-                <%= text_area_tag "answers[#{question.id}]", value, required: question.required %>
+                <%= text_area_tag "answers[#{question.id}]", value, **field_options %>
               <% elsif question.single_choice? || question.dropdown? %>
-                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, value), include_blank: !question.required, required: question.required %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, value), **field_options.merge(include_blank: !question.required) %>
               <% elsif question.multiple_choice? %>
-                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, Array(value)), multiple: true, required: question.required %>
+                <%= select_tag "answers[#{question.id}]", options_for_select(question.options, Array(value)), **field_options.merge(multiple: true) %>
               <% elsif question.yes_no? %>
-                <%= select_tag "answers[#{question.id}]", options_for_select([["Yes", "yes"], ["No", "no"]], value), include_blank: !question.required, required: question.required %>
+                <%= select_tag "answers[#{question.id}]", options_for_select([["Yes", "yes"], ["No", "no"]], value), **field_options.merge(include_blank: !question.required) %>
               <% elsif question.date? %>
-                <%= date_field_tag "answers[#{question.id}]", value, required: question.required %>
+                <%= date_field_tag "answers[#{question.id}]", value, **field_options %>
               <% elsif question.time? %>
-                <%= time_field_tag "answers[#{question.id}]", value, required: question.required %>
+                <%= time_field_tag "answers[#{question.id}]", value, **field_options %>
               <% elsif question.number? || question.rating? %>
-                <%= number_field_tag "answers[#{question.id}]", value, required: question.required %>
+                <%= number_field_tag "answers[#{question.id}]", value, **field_options %>
               <% else %>
-                <%= text_field_tag "answers[#{question.id}]", value, required: question.required %>
+                <%= text_field_tag "answers[#{question.id}]", value, **field_options %>
               <% end %>
             </section>
           <% end %>

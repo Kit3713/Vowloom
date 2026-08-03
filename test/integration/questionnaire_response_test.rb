@@ -15,7 +15,8 @@ class QuestionnaireResponseTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "select[name='answers[#{@needs_ride.id}]']"
-    assert_select "input[name='answers[#{@pickup_location.id}]']", count: 0
+    assert_select "section[data-questionnaire-question-id='#{@pickup_location.id}'][data-questionnaire-conditional-question-id='#{@needs_ride.id}'][data-questionnaire-conditional-value='yes'][hidden]"
+    assert_select "input[name='answers[#{@pickup_location.id}]'][disabled]", count: 1
 
     post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "yes", @pickup_location.id => "Hotel" } }
 
@@ -25,5 +26,19 @@ class QuestionnaireResponseTest < ActionDispatch::IntegrationTest
     post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "no", @pickup_location.id => "Should be removed" } }
 
     assert_not response.answers.exists?(question: @pickup_location)
+  end
+
+  test "a required conditional answer is validated only after its condition is selected" do
+    @pickup_location.update!(required: true)
+
+    post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "no" } }
+
+    assert_redirected_to @questionnaire
+    assert_equal "Your answers have been saved.", flash[:notice]
+
+    post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "yes" } }
+
+    assert_redirected_to @questionnaire
+    assert_equal "Pickup location is required.", flash[:alert]
   end
 end

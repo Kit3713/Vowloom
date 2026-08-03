@@ -32,6 +32,7 @@ class Post < ApplicationRecord
   def commentable_by?(viewer)
     return false unless comments_enabled? && accessible_to?(viewer)
     return viewer.owner? || viewer.admin? || viewer == user if couple_inbox?
+    return viewer.owner? || viewer.admin? || viewer == user if conversation? && group_space? && group.information?
 
     true
   end

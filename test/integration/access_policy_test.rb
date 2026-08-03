@@ -74,6 +74,23 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Rehearsal"
   end
 
+  test "community puts a signed-in member's outstanding RSVP and questionnaires first" do
+    household = @site.households.create!(name: "Guest household")
+    invitee = @site.invitees.create!(first_name: "Alex", last_name: "Guest", household:)
+    member = @site.users.create!(display_name: "Alex", login_identifier: "alex-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", invitee:)
+    event = @site.events.create!(title: "Reception", starts_at: 2.days.from_now)
+    event.event_invitations.create!(invitee:)
+    questionnaire = @site.questionnaires.create!(title: "Meal preference", created_by: @owner, status: :published)
+    questionnaire.questions.create!(position: 1, kind: :single_choice, prompt: "Choose", options: [ "Vegetarian", "Chicken" ])
+    sign_in(member)
+
+    get community_path
+
+    assert_response :success
+    assert_select "section[aria-label='Your wedding to-dos']", text: /RSVP for Reception/
+    assert_select "section[aria-label='Your wedding to-dos']", text: /Meal preference/
+  end
+
   test "private sites do not expose a site-wide event or group by direct link" do
     @site.update!(access_policy: :private_access)
     event = @site.events.create!(title: "Reception")

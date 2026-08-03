@@ -13,8 +13,8 @@ class GroupsController < ApplicationController
 
     @group = @site.groups.find(params[:id])
     return redirect_to(groups_path, alert: "That group is private.") unless @group.accessible_to?(Current.user)
-    @conversation = @group.posts.visible.find_by(conversation: true)
-    @posts = @group.posts.visible.chronological
+    @conversation = @group.posts.visible.find_by(conversation: true) if @group.discussion?
+    @posts = @group.posts.visible.where(conversation: false).chronological
     @post = @group.posts.build(space: :group_space, visibility: @group.private_group? ? :members_only : :everyone)
     @available_members = @site.users.order(:display_name) if manage_group?(@group)
     @task = @group.tasks.build

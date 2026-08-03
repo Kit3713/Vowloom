@@ -21,6 +21,16 @@ class MediaAsset < ApplicationRecord
     file.video?
   end
 
+  # Media inherits visibility from the post where it was originally shared.
+  # Curating it into the Gallery never makes private group or member-only
+  # content public.
+  def accessible_to?(viewer)
+    return true unless post
+    return post.accessible_to?(viewer) if viewer
+
+    post.everyone? && (!post.group_space? || post.group.site_wide?)
+  end
+
   def export_metadata
     {
       filename: file.filename.to_s,

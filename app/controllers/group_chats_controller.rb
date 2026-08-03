@@ -5,12 +5,14 @@ class GroupChatsController < ApplicationController
   def show
     return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
     return redirect_to(groups_path, alert: "That group is private.") unless @group.accessible_to?(Current.user)
+    return redirect_to(@group, alert: "This information group does not use member chat.") unless @group.discussion?
 
     @conversation = @group.posts.visible.find_by(conversation: true)
   end
 
   def create
     require_live_site!
+    return redirect_to(@group, alert: "Only discussion groups can open a live chat.") unless @group.discussion?
     return redirect_to(@group, alert: "Only group staff can open a live chat.") unless manage_group?
 
     @conversation = @group.posts.create!(site: @site, user: Current.user, space: :group_space, visibility: @group.private_group? ? :members_only : :everyone, title: "#{@group.name} chat", body: "Welcome to the #{@group.name} chat.", comments_enabled: true, conversation: true, published_at: Time.current)

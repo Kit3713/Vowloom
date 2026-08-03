@@ -28,4 +28,38 @@ class GroupChatTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Wedding party chat"
     assert_select "turbo-cable-stream-source"
   end
+
+  test "information groups cannot open chat or accept member replies from stale chats" do
+    information_group = @site.groups.create!(name: "Travel details", participation: :information, created_by: @owner)
+    information_group.members << @member
+
+    assert_no_difference "Post.count" do
+      post group_chat_path(information_group)
+    end
+    assert_redirected_to group_path(information_group)
+    assert_equal "Only discussion groups can open a live chat.", flash[:alert]
+
+    stale_conversation = information_group.posts.create!(site: @site, user: @owner, space: :group_space, visibility: :everyone, title: "Old chat", body: "Previously opened", comments_enabled: true, conversation: true, published_at: Time.current)
+
+    delete session_path
+    post session_path, params: { login_identifier: @member.login_identifier, password: "password123" }
+    get group_chat_path(information_group)
+    assert_redirected_to group_path(information_group)
+    assert_equal "This information group does not use member chat.", flash[:alert]
+
+    assert_no_difference "Comment.count" do
+      post post_comments_path(stale_conversation), params: { comment: { body: "Can I reply?" } }
+    end
+    assert_redirected_to group_path(information_group)
+    assert_equal "You cannot reply to that conversation.", flash[:alert]
+  end
+
+  test "feed navigation points to the event, gallery, and group pages" do
+    get feed_path("main")
+
+    assert_response :success
+    assert_select "a[href='#{events_path}']", text: "Events"
+    assert_select "a[href='#{gallery_path}']", text: "Gallery"
+    assert_select "a[href='#{groups_path}']", text: "Groups"
+  end
 end

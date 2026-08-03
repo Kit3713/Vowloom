@@ -266,7 +266,7 @@ Historical participation becomes read-only:
 - Owner retains redaction authority and can deliberately unfreeze the site.
 - Freeze records actor, time, content counts, and archive manifest/version.
 
-Freezing is paired with export, not treated as a substitute for backup. Archive export contains database data, media, a checksummed manifest, and eventually a static readable site. Archive preparation offers removal of sensitive planning data such as dietary notes, private contact details, unused invite codes, and staff notes.
+Freezing is paired with export, not treated as a substitute for backup. The immutable manifest and matching static readable site preserve posts, schedule, public RSVP totals, eligible anonymous questionnaire aggregates, registry availability, and media metadata in the public-safe export. The complete Owner export additionally preserves private conversations, detailed RSVP/questionnaire records, registry claims, and planning tasks, while excluding credentials, sessions, contact details, and invitation codes. Neither export includes original media bytes, so database and media backups remain required.
 
 ## 13. Technical architecture
 

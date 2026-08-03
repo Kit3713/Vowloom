@@ -18,6 +18,7 @@ class User < ApplicationRecord
 
   validates :display_name, presence: true, length: { maximum: 80 }
   validate :profile_photo_is_an_image
+  validate :only_owner_for_site, if: :owner?
 
   private
 
@@ -26,5 +27,12 @@ class User < ApplicationRecord
     return if profile_photo.content_type.in?([ "image/png", "image/jpeg", "image/webp", "image/gif" ]) && profile_photo.byte_size <= 10.megabytes
 
     errors.add(:profile_photo, "must be an image no larger than 10 MB")
+  end
+
+  def only_owner_for_site
+    return unless site_id
+    return unless self.class.where(site_id:, role: :owner).where.not(id:).exists?
+
+    errors.add(:role, "is already assigned to another user for this site")
   end
 end

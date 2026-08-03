@@ -6,7 +6,7 @@ class GalleryController < ApplicationController
     redirect_to new_setup_path and return unless @site
     redirect_to new_session_path, alert: "Please sign in with your wedding invitation." and return if @site.private_access? && !authenticated?
     @albums = @site.albums.where(visibility: authenticated? ? %i[everyone members_only] : :everyone).order(featured: :desc, created_at: :desc)
-    @media_assets = @site.media_assets.approved.where(featured: true).with_attached_file.order(created_at: :desc)
+    @media_assets = @site.media_assets.approved.where(featured: true).with_attached_file.order(created_at: :desc).select { |asset| asset.accessible_to?(Current.user) }
     @submitted_assets = if site_manager?
       @site.media_assets.submitted.with_attached_file.order(created_at: :asc)
     elsif helper?

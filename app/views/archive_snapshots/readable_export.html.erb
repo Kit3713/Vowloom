@@ -35,13 +35,25 @@
 
     <section>
       <h2>Schedule</h2>
-      <% if @payload.fetch(:events).any? %><% @payload.fetch(:events).each do |event| %><article><h3><%= event.fetch(:title) %></h3><p><%= event[:starts_at].presence || "Time to be announced" %><% if event[:ends_at].present? %> – <%= event[:ends_at] %><% end %></p><% if event[:location_name].present? %><p><%= event[:location_name] %><% if event[:location_address].present? %> · <%= event[:location_address] %><% end %></p><% end %><% if event[:description].present? %><p><%= event[:description] %></p><% end %></article><% end %><% else %><p>No events were included in this export.</p><% end %>
+      <% if @payload.fetch(:events).any? %><% @payload.fetch(:events).each do |event| %><article><h3><%= event.fetch(:title) %></h3><p><%= event[:starts_at].presence || "Time to be announced" %><% if event[:ends_at].present? %> – <%= event[:ends_at] %><% end %></p><% if event[:location_name].present? %><p><%= event[:location_name] %><% if event[:location_address].present? %> · <%= event[:location_address] %><% end %></p><% end %><% if event[:description].present? %><p><%= event[:description] %></p><% end %><% if event[:rsvp_totals].present? %><p class="meta">RSVPs: <%= event[:rsvp_totals].map { |status, count| "#{count} #{status}" }.to_sentence %></p><% end %><% if event[:rsvps].present? %><ul><% event[:rsvps].each do |rsvp| %><li><strong><%= rsvp[:invitee] %></strong>: <%= rsvp[:status] %><% if rsvp[:meal_choice].present? %> · <%= rsvp[:meal_choice] %><% end %><% if rsvp[:dietary_notes].present? %> · dietary: <%= rsvp[:dietary_notes] %><% end %><% if rsvp[:accessibility_notes].present? %> · accessibility: <%= rsvp[:accessibility_notes] %><% end %></li><% end %></ul><% end %></article><% end %><% else %><p>No events were included in this export.</p><% end %>
     </section>
 
     <section>
       <h2>Groups</h2>
       <% if @payload.fetch(:groups).any? %><ul><% @payload.fetch(:groups).each do |group| %><li><strong><%= group.fetch(:name) %></strong> (<%= group.fetch(:participation) %>)<% if group[:description].present? %> — <%= group[:description] %><% end %></li><% end %></ul><% else %><p>No groups were included in this export.</p><% end %>
     </section>
+
+    <section>
+      <h2>Questionnaires</h2>
+      <% if @payload.fetch(:questionnaires, []).any? %><% @payload.fetch(:questionnaires).each do |questionnaire| %><article><h3><%= questionnaire[:title] %></h3><% if questionnaire[:introduction].present? %><p><%= questionnaire[:introduction] %></p><% end %><ul><% questionnaire.fetch(:questions).each do |question| %><li><strong><%= question[:prompt] %></strong><% if question[:aggregate].present? %> · <%= question[:aggregate][:answered_count] %> answers<% if question[:aggregate][:choice_counts].present? %> (<%= question[:aggregate][:choice_counts].map { |choice, count| "#{choice}: #{count}" }.to_sentence %>)<% end %><% end %></li><% end %></ul><% if questionnaire[:responses].present? %><h4>Recorded responses</h4><% questionnaire[:responses].each do |response| %><article><p class="meta"><%= response[:respondent] %> · <%= response[:submitted_at] %></p><ul><% response[:answers].each do |answer| %><li><strong><%= answer[:prompt] %></strong><% if answer[:value].present? %>: <%= Array(answer[:value]).to_sentence %><% end %><% if answer[:file].present? %> · attached file: <%= answer[:file][:filename] %><% end %></li><% end %></ul></article><% end %><% end %></article><% end %><% else %><p>No questionnaire results were included in this export.</p><% end %>
+    </section>
+
+    <section>
+      <h2>Registry record</h2>
+      <% if @payload.fetch(:registry, []).any? %><% @payload.fetch(:registry).each do |collection| %><article><h3><%= collection[:title] %></h3><% if collection[:description].present? %><p><%= collection[:description] %></p><% end %><ul><% collection.fetch(:items).each do |item| %><li><strong><%= item[:title] %></strong> · <%= item[:available_quantity] %> of <%= item[:quantity_requested] %> available<% if item[:category].present? %> · <%= item[:category] %><% end %><% if item[:claims].present? %><ul><% item[:claims].each do |claim| %><li><%= claim[:purchaser] %>: <%= claim[:quantity] %> <%= claim[:status] %><% if claim[:private_note].present? %> · <%= claim[:private_note] %><% end %></li><% end %></ul><% end %></li><% end %></ul></article><% end %><% else %><p>No registry items were included in this export.</p><% end %>
+    </section>
+
+    <% if @payload.fetch(:tasks, []).any? %><section><h2>Planning tasks</h2><% @payload.fetch(:tasks).each do |task| %><article><h3><%= task[:title] %></h3><p class="meta"><%= task[:group] %><% if task[:assigned_to].present? %> · assigned to <%= task[:assigned_to] %><% end %><% if task[:due_on].present? %> · due <%= task[:due_on] %><% end %><% if task[:completed_at].present? %> · completed <%= task[:completed_at] %><% end %></p><% if task[:description].present? %><p><%= task[:description] %></p><% end %><% task[:comments].each do |comment| %><div class="comment"><p class="meta"><%= comment[:author] %> · <%= comment[:created_at] %></p><p><%= comment[:body] %></p></div><% end %></article><% end %></section><% end %>
 
     <main>
       <h2>Community history</h2>

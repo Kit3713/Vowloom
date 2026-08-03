@@ -44,6 +44,10 @@ class Questionnaire < ApplicationRecord
     user.present? && member_visible?
   end
 
+  def kiosk_displayable?
+    published? && aggregate? && (group.blank? || group.site_wide?) && (event.blank? || event.site_wide?)
+  end
+
   def structure_locked?
     responses.exists?
   end

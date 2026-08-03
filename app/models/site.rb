@@ -1,4 +1,6 @@
 class Site < ApplicationRecord
+  class OwnershipTransferError < StandardError; end
+
   has_one_attached :banner_image
   has_many :users, dependent: :restrict_with_exception
   has_many :households, dependent: :destroy
@@ -37,5 +39,37 @@ class Site < ApplicationRecord
     return if gigabytes.blank?
 
     self.media_quota_bytes = (gigabytes.to_d * 1.gigabyte).round
+  end
+
+  # A site row lock serializes transfers. Locking the two user rows as well
+  # keeps the role changes and their audit trail in the same transaction.
+  def transfer_ownership!(from:, to:)
+    raise OwnershipTransferError, "A different site user must be selected." if from.id == to.id
+
+    transaction do
+      lock!
+      current_owner = users.lock.find_by!(role: :owner)
+      raise OwnershipTransferError, "Ownership has already changed." unless current_owner.id == from.id
+
+      new_owner = users.lock.find(to.id)
+      raise OwnershipTransferError, "The selected user already owns this site." if new_owner.owner?
+
+      current_owner.update!(role: :admin)
+      new_owner.update!(role: :owner)
+      audit_events.create!(
+        actor: current_owner,
+        action: "site.ownership_transferred",
+        auditable: new_owner,
+        metadata: {
+          previous_owner_id: current_owner.id,
+          new_owner_id: new_owner.id,
+          previous_owner_role: "admin"
+        }
+      )
+
+      [ current_owner, new_owner ]
+    end
+  rescue ActiveRecord::RecordNotFound
+    raise OwnershipTransferError, "The selected user belongs to a different site."
   end
 end

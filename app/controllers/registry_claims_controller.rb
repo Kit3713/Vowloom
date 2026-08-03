@@ -2,7 +2,7 @@ class RegistryClaimsController < ApplicationController
   before_action :require_live_site!
 
   def create
-    item = RegistryItem.joins(:registry_collection).where(registry_collections: { site_id: current_site.id }).find(params[:registry_item_id])
+    item = RegistryItem.joins(:registry_collection).where(registry_collections: { site_id: current_site.id, published: true }).where(published: true).find(params[:registry_item_id])
     claim = item.claim!(Current.user, quantity: params.fetch(:quantity, 1).to_i)
     redirect_to registry_collections_path, notice: "You reserved #{claim.quantity} of #{item.title}."
   rescue ActiveRecord::RecordInvalid
