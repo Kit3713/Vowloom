@@ -191,7 +191,7 @@
         <h2>Initialize the wedding community</h2>
         <p>Setup is transactional: either every selected item is created successfully or nothing is kept. You will be signed in as Owner when it finishes.</p>
       </div>
-      <%= form.submit "Initialize Vowloom", class: "button setup-submit", data: { disable_with: "Initializing…" } %>
+      <%= form.button "Initialize Vowloom", type: "submit", class: "button setup-submit", data: { disable_with: "Initializing…" } %>
     </section>
   <% end %>
 </main>
