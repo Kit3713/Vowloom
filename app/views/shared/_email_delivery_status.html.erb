@@ -1,0 +1,18 @@
+<section class="email-delivery-status <%= "email-delivery-ready" if EmailDeliveryConfiguration.configured? %>" aria-labelledby="email-delivery-heading">
+  <% if EmailDeliveryConfiguration.configured? %>
+    <h3 id="email-delivery-heading">Email recovery is available</h3>
+    <p>Vowloom will send password recovery and selected important announcements through <strong><%= EmailDeliveryConfiguration.server_label %></strong>.</p>
+  <% else %>
+    <h3 id="email-delivery-heading">Email recovery is not active yet</h3>
+    <p>A recovery address can be saved now, but Vowloom cannot send to it until the server owner connects an SMTP provider.</p>
+    <details>
+      <summary>How to connect any SMTP provider</summary>
+      <ol>
+        <li>Get the SMTP host, port, username, and password from your email provider.</li>
+        <li>Copy <code>.env.example</code> to <code>.env</code> and set <code>VOWLOOM_SMTP_ADDRESS</code>, <code>VOWLOOM_SMTP_PORT</code>, <code>VOWLOOM_SMTP_USERNAME</code>, <code>VOWLOOM_SMTP_PASSWORD</code>, and <code>VOWLOOM_MAIL_FROM</code>.</li>
+        <li>Restart the web container with <code>docker compose up -d --force-recreate web</code>. This status will then show “available.”</li>
+      </ol>
+      <p>SMTP credentials stay in the server environment and are never stored in the wedding database.</p>
+    </details>
+  <% end %>
+</section>

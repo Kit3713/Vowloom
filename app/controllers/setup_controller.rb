@@ -73,7 +73,7 @@ class SetupController < ApplicationController
       "Database" => ActiveRecord::Base.connection.adapter_name,
       "Media storage" => Rails.application.config.active_storage.service.to_s.humanize,
       "Background jobs" => ActiveJob::Base.queue_adapter.class.name.demodulize.delete_suffix("Adapter"),
-      "Email" => ENV["VOWLOOM_SMTP_ADDRESS"].present? ? "Configured" : "Optional — configure later"
+      "Email" => EmailDeliveryConfiguration.status
     }
   end
 

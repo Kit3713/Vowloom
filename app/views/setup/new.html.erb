@@ -41,9 +41,8 @@
               <%= f.label :name, "Wedding name" %>
               <%= f.text_field :name, required: true, autofocus: true, maxlength: 120, placeholder: "Alex & Jordan" %>
             </div>
-            <div class="field">
-              <%= f.label :wedding_date %>
-              <%= f.date_field :wedding_date %>
+            <div class="field field-wide">
+              <%= render "shared/wedding_date_field", form: f, attribute: :wedding_date, label_text: "Wedding date" %>
             </div>
             <div class="field">
               <%= f.label :time_zone, "Wedding time zone" %>
@@ -92,6 +91,8 @@
         <h2 id="owner-step-heading">Create the first administrator</h2>
         <p class="setup-help">This is the only account created without an invitation. The owner controls privacy, staff, archives, and future ownership transfer.</p>
 
+        <%= render "shared/email_delivery_status" %>
+
         <%= form.fields_for :owner, @owner do |f| %>
           <div class="setup-grid">
             <div class="field">
@@ -103,7 +104,7 @@
               <%= f.text_field :login_identifier, required: true, autocomplete: "username", autocapitalize: "none", spellcheck: false %>
             </div>
             <div class="field field-wide">
-              <%= f.label :recovery_email, "Recovery email (recommended)" %>
+              <%= f.label :recovery_email, EmailDeliveryConfiguration.configured? ? "Recovery email (recommended)" : "Recovery email (optional until SMTP is connected)" %>
               <%= f.email_field :recovery_email, autocomplete: "email", placeholder: "you@example.com" %>
               <small>Used for password recovery and never shown on your public profile.</small>
             </div>

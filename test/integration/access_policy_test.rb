@@ -26,6 +26,20 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
     assert_select ".flash-notice", count: 0
   end
 
+  test "password recovery does not pretend to send mail when smtp is unavailable" do
+    get new_password_path
+
+    assert_response :success
+    assert_select ".email-delivery-status", text: /Email recovery is not active yet/
+    assert_select "form[action='#{passwords_path}']", count: 0
+
+    post passwords_path, params: { recovery_email: "owner@example.com" }
+
+    assert_redirected_to new_password_path
+    follow_redirect!
+    assert_select ".flash-alert", text: /Email recovery is unavailable until SMTP is configured/
+  end
+
   test "private sites retain the cover but gate the community" do
     @site.update!(access_policy: :private_access)
 
@@ -42,6 +56,10 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
     sign_in(@owner)
     get management_path
     assert_response :success
+    assert_select "h2", text: "Website settings"
+    assert_select "[data-date-jump-control]", count: 1
+    assert_select "select[name='site[time_zone]']", count: 1
+    assert_select ".email-delivery-status", text: /Email recovery is not active yet/
 
     delete session_path
     member = create_user("Member", :member)
@@ -53,9 +71,12 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
   test "owner setting changes are recorded in the audit log" do
     sign_in(@owner)
 
-    patch management_path, params: { site: { name: "Updated Vowloom", accent_color: "#8f4f6a", access_policy: "public_access", content_state: "live" } }
+    patch management_path, params: { site: { name: "Updated Vowloom", wedding_date: "2029-07-21", time_zone: "Hawaii", landing_message: "Updated welcome", accent_color: "#8f4f6a", access_policy: "public_access", content_state: "live" } }
 
     assert_redirected_to management_path
+    assert_equal Date.new(2029, 7, 21), @site.reload.wedding_date
+    assert_equal "Hawaii", @site.time_zone
+    assert_equal "Updated welcome", @site.landing_message
     assert_equal "site.updated", @site.audit_events.order(:created_at).last.action
     assert_equal @owner, @site.audit_events.order(:created_at).last.actor
   end

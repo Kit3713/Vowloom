@@ -7,6 +7,9 @@ class SetupTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Make Vowloom yours"
     assert_select ".setup-step", count: 4
     assert_select "dt", text: "Database"
+    assert_select "[data-date-jump-control]", count: 1
+    assert_select "input[data-date-jump-year]", count: 1
+    assert_select ".email-delivery-status", text: /Email recovery is not active yet/
     assert_select "button.setup-submit[type='submit']", text: /Finish setup and open Vowloom/, count: 1
     assert_select "input.setup-submit", count: 0
 

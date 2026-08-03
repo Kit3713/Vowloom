@@ -7,6 +7,11 @@ class PasswordsController < ApplicationController
   end
 
   def create
+    unless EmailDeliveryConfiguration.configured?
+      redirect_to new_password_path, alert: "Email recovery is unavailable until SMTP is configured by the server owner."
+      return
+    end
+
     if user = User.find_by(recovery_email: params[:recovery_email])
       PasswordsMailer.reset(user).deliver_later
     end

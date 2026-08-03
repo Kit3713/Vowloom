@@ -1,3 +1,30 @@
 <main class="form-page" style="--accent: <%= current_site.accent_color %>">
-  <section class="form-card"><p class="eyebrow">Your member profile</p><h1>Keep it simple</h1><p>Your name appears beside your posts, comments, uploads, and preserved wedding history.</p><%= form_with model: @user, url: profile_path, method: :patch, class: "stack" do |f| %><%= f.label :display_name, "Name" %><%= f.text_field :display_name, required: true, maxlength: 80 %><%= f.label :profile_photo, "Photo (optional)" %><%= image_tag @user.profile_photo, class: "profile-photo" if @user.profile_photo.attached? %><%= f.file_field :profile_photo, accept: "image/png,image/jpeg,image/webp,image/gif" %><%= f.label :profile_summary, "Short note (optional)" %><%= f.text_area :profile_summary, rows: 3, maxlength: 500 %><fieldset><legend>Email preferences</legend><%= f.label :recovery_email, "Recovery email (optional)" %><%= f.email_field :recovery_email, autocomplete: "email" %><%= f.check_box :important_announcement_emails %><%= f.label :important_announcement_emails, "Email me important wedding announcements" %><p>Only announcements selected by the Owner or an Admin are emailed. You can turn this off at any time.</p></fieldset><%= f.submit "Save profile", class: "button" %><%= link_to "Cancel", community_path, class: "button button-secondary" %><% end %></section>
+  <section class="form-card">
+    <p class="eyebrow">Your member profile</p>
+    <h1>Keep it simple</h1>
+    <p>Your name appears beside your posts, comments, uploads, and preserved wedding history.</p>
+
+    <%= form_with model: @user, url: profile_path, method: :patch, class: "stack" do |f| %>
+      <%= f.label :display_name, "Name" %>
+      <%= f.text_field :display_name, required: true, maxlength: 80 %>
+      <%= f.label :profile_photo, "Photo (optional)" %>
+      <%= image_tag @user.profile_photo, class: "profile-photo" if @user.profile_photo.attached? %>
+      <%= f.file_field :profile_photo, accept: "image/png,image/jpeg,image/webp,image/gif" %>
+      <%= f.label :profile_summary, "Short note (optional)" %>
+      <%= f.text_area :profile_summary, rows: 3, maxlength: 500 %>
+
+      <fieldset>
+        <legend>Email preferences</legend>
+        <%= render "shared/email_delivery_status" %>
+        <%= f.label :recovery_email, "Recovery email (optional)" %>
+        <%= f.email_field :recovery_email, autocomplete: "email" %>
+        <%= f.check_box :important_announcement_emails, disabled: !EmailDeliveryConfiguration.configured? %>
+        <%= f.label :important_announcement_emails, "Email me important wedding announcements" %>
+        <p>Only announcements selected by the Owner or an Admin are emailed. You can turn this off at any time.</p>
+      </fieldset>
+
+      <%= f.submit "Save profile", class: "button" %>
+      <%= link_to "Cancel", community_path, class: "button button-secondary" %>
+    <% end %>
+  </section>
 </main>

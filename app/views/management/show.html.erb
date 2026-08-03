@@ -3,9 +3,11 @@
   <section class="feed-shell">
     <p class="eyebrow">Owner controls</p><h1>Manage Vowloom</h1><p><%= link_to "Archive snapshots and content exports", archive_snapshots_path %></p>
     <%= form_with model: @site, url: management_path, method: :patch, class: "composer" do |f| %>
-      <h2>Cover page and access</h2>
+      <h2>Website settings</h2>
+      <p>These are the same wedding, cover, privacy, timezone, and storage choices offered during initialization. They remain editable here.</p>
       <%= f.label :name, "Wedding name" %><%= f.text_field :name, required: true %>
-      <%= f.label :wedding_date %><%= f.date_field :wedding_date %>
+      <%= render "shared/wedding_date_field", form: f, attribute: :wedding_date, label_text: "Wedding date" %>
+      <%= f.label :time_zone, "Wedding time zone" %><%= f.time_zone_select :time_zone, nil, {}, required: true %>
       <%= f.label :landing_message %><%= f.text_area :landing_message, rows: 3 %>
       <%= f.label :accent_color %><%= f.color_field :accent_color %>
       <%= f.label :banner_image, "Banner photo (optional)" %><%= f.file_field :banner_image, accept: "image/*" %>
@@ -14,6 +16,7 @@
       <%= f.label :content_state, "Community state" %><%= f.select :content_state, [["Live — members can participate", "live"], ["Frozen — read-only archive", "frozen"]] %>
       <%= f.submit "Save owner settings", class: "button" %>
     <% end %>
+    <section class="post-card"><h2>Email and account recovery</h2><%= render "shared/email_delivery_status" %><p>The Owner can add or change their recovery address from <%= link_to "Profile", edit_profile_path %>.</p></section>
     <%= form_with model: @household, class: "composer" do |f| %><h2>Add household</h2><%= f.label :name, "Household name" %><%= f.text_field :name, required: true %><%= f.submit "Add household", class: "button button-secondary" %><% end %>
     <%= form_with model: @invitee, class: "composer" do |f| %><h2>Add guest</h2><%= f.label :first_name %><%= f.text_field :first_name, required: true %><%= f.label :last_name %><%= f.text_field :last_name, required: true %><%= f.label :household_id, "Household (optional)" %><%= f.select :household_id, @households.map { |household| [household.name, household.id] }, include_blank: "No household" %><%= f.label :email, "Email (optional)" %><%= f.email_field :email %><%= f.label :phone, "Phone (optional)" %><%= f.telephone_field :phone %><%= f.submit "Add guest", class: "button button-secondary" %><% end %>
     <%= form_with url: import_invitees_path, multipart: true, class: "composer" do |f| %><h2>Import guest list</h2><p>Upload CSV columns: <code>household, first_name, last_name, email, phone</code>. Existing guests with the same name and household are updated.</p><%= f.label :file, "Guest CSV" %><%= f.file_field :file, accept: ".csv,text/csv", required: true %><%= f.submit "Import CSV", class: "button button-secondary" %><% end %><p><%= link_to "Download guest CSV", export_invitees_path %></p>

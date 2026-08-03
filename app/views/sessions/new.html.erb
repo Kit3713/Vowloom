@@ -5,4 +5,8 @@
 <% end %>
 <br>
 
-<%= link_to "Forgot password?", new_password_path %>
+<% if EmailDeliveryConfiguration.configured? %>
+  <%= link_to "Forgot password?", new_password_path %>
+<% else %>
+  <p class="setup-note">Email password recovery is not configured on this server.</p>
+<% end %>

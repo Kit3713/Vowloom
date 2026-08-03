@@ -47,6 +47,6 @@ class ManagementController < ApplicationController
   end
 
   def site_params
-    params.require(:site).permit(:name, :wedding_date, :landing_message, :accent_color, :access_policy, :content_state, :banner_image, :media_quota_gigabytes)
+    params.require(:site).permit(:name, :wedding_date, :time_zone, :landing_message, :accent_color, :access_policy, :content_state, :banner_image, :media_quota_gigabytes)
   end
 end

@@ -1,0 +1,13 @@
+<% input_id = "#{form.object_name.to_s.parameterize(separator: '_')}_#{attribute}" %>
+<% selected_date = form.object.public_send(attribute) %>
+<div class="date-jump-control" data-date-jump-control>
+  <div class="field">
+    <%= form.label attribute, label_text %>
+    <%= form.date_field attribute, id: input_id, data: { date_jump_date: true } %>
+  </div>
+  <div class="field year-jump-field">
+    <%= label_tag "#{input_id}_year", "Jump to year" %>
+    <%= tag.input type: "number", id: "#{input_id}_year", value: selected_date&.year || Date.current.year, min: 1900, max: 2200, inputmode: "numeric", data: { date_jump_year: true } %>
+  </div>
+</div>
+<small class="date-jump-help">Choose a nearby date from the calendar, or enter a year to jump there immediately.</small>
