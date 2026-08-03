@@ -11,6 +11,32 @@
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @questionnaire.site.content_live? %>
       <section class="composer">
+        <h2>Questionnaire settings</h2>
+        <%= form_with model: @questionnaire, class: "stack" do |f| %>
+          <%= f.label :title %>
+          <%= f.text_field :title, required: true %>
+          <%= f.label :introduction %>
+          <%= f.text_area :introduction %>
+          <%= f.label :status %>
+          <%= f.select :status, Questionnaire.statuses.keys.map { |status| [status.humanize, status] } %>
+          <%= f.label :opens_at, "Open for responses (optional)" %>
+          <%= f.datetime_local_field :opens_at %>
+          <%= f.label :closes_at, "Close responses (optional)" %>
+          <%= f.datetime_local_field :closes_at %>
+          <%= f.label :results_visibility %>
+          <%= f.select :results_visibility, [["Staff only", "staff_only"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %>
+          <%= f.label :response_scope %>
+          <%= f.select :response_scope, [["Individual", "individual"], ["Household", "household"]], disabled: @questionnaire.structure_locked? %>
+          <%= f.label :group_id, "Group audience (optional)" %>
+          <%= f.select :group_id, @questionnaire.site.groups.select { |group| group.accessible_to?(Current.user) }.map { |group| [group.name, group.id] }, { include_blank: "All members" }, disabled: @questionnaire.structure_locked? %>
+          <%= f.label :event_id, "Event invitee audience (optional)" %>
+          <%= f.select :event_id, @questionnaire.site.events.select { |event| event.visible_to?(Current.user) }.map { |event| [event.title, event.id] }, { include_blank: "All members" }, disabled: @questionnaire.structure_locked? %>
+          <% if @questionnaire.structure_locked? %><p class="muted">Audience and response scope are locked once someone has responded.</p><% end %>
+          <%= f.submit "Save settings", class: "button button-secondary" %>
+        <% end %>
+      </section>
+
+      <section class="composer">
         <h2>Add a question</h2>
         <%= form_with url: questionnaire_questions_path(@questionnaire), class: "stack" do |f| %>
           <%= f.label "question[prompt]", "Question or information" %>
@@ -28,6 +54,34 @@
           <%= f.submit "Add question", class: "button" %>
         <% end %>
       </section>
+
+      <% if @questionnaire.questions.any? %>
+        <section class="composer">
+          <h2>Manage questions</h2>
+          <% @questionnaire.questions.each do |question| %>
+            <%= form_with model: [@questionnaire, question], class: "stack" do |f| %>
+              <%= f.label :prompt, "Question #{question.position}" %>
+              <%= f.text_area :prompt, required: true, rows: 2 %>
+              <% unless question.structure_locked? %>
+                <%= f.label :kind, "Answer type" %>
+                <%= f.select :kind, Question::TYPES.map { |type| [type.humanize, type] } %>
+                <%= f.label :options_text, "Choices (one per line, if applicable)" %>
+                <%= f.text_area :options_text, value: question.options_text, rows: 2 %>
+                <%= f.label :conditional_question_id, "Only show after this answer (optional)" %>
+                <%= f.select :conditional_question_id, @questionnaire.questions.reject { |other| other == question }.map { |other| [other.prompt, other.id] }, { include_blank: "Always show", selected: question.conditional_rule["question_id"] }, disabled: false %>
+                <%= f.label :conditional_value, "Required earlier answer" %>
+                <%= f.text_field :conditional_value, value: question.conditional_rule["equals"] %>
+                <%= f.check_box :required %>
+                <%= f.label :required, "Required" %>
+              <% else %>
+                <p class="muted">Only the wording can change because this question already has answers.</p>
+              <% end %>
+              <%= f.submit "Save question", class: "button button-secondary" %>
+              <% unless question.structure_locked? %><%= button_to "Remove question", questionnaire_question_path(@questionnaire, question), method: :delete, class: "button button-danger", form: { data: { turbo_confirm: "Remove this question?" } } %><% end %>
+            <% end %>
+          <% end %>
+        </section>
+      <% end %>
     <% end %>
 
     <% if authenticated? && @questionnaire.open_for_responses? %>

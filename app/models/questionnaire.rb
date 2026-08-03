@@ -11,6 +11,7 @@ class Questionnaire < ApplicationRecord
   enum :results_visibility, { staff_only: 0, respondent_and_staff: 1, aggregate: 2, member_visible: 3 }, default: :staff_only
 
   validates :title, presence: true, length: { maximum: 180 }
+  validate :closes_after_opens
 
   def open_for_responses?
     published? && (opens_at.blank? || opens_at <= Time.current) && (closes_at.blank? || closes_at >= Time.current)
@@ -41,5 +42,17 @@ class Questionnaire < ApplicationRecord
     return true if user&.owner? || user&.admin? || user&.helper?
 
     user.present? && member_visible?
+  end
+
+  def structure_locked?
+    responses.exists?
+  end
+
+  private
+
+  def closes_after_opens
+    return if opens_at.blank? || closes_at.blank? || closes_at >= opens_at
+
+    errors.add(:closes_at, "must be after the opening time")
   end
 end

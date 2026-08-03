@@ -1,0 +1,31 @@
+<main class="community-page" style="--accent: <%= @site.accent_color %>">
+  <header class="community-header">
+    <%= link_to @site.name, community_path, class: "brand" %>
+    <%= link_to @group.name, @group %>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Group conversation</p>
+    <h1><%= @group.name %> chat</h1>
+    <% if @conversation %>
+      <%= turbo_stream_from @conversation if authenticated? %>
+      <section class="post-card chat-thread">
+        <div id="<%= dom_id(@conversation, :comments) %>">
+          <% @conversation.comments.visible.each do |comment| %>
+            <%= render "comments/comment", comment: %>
+          <% end %>
+        </div>
+        <% if authenticated? && @site.content_live? %>
+          <%= form_with url: post_comments_path(@conversation), class: "comment-form" do |f| %>
+            <%= f.text_field :body, name: "comment[body]", required: true, placeholder: "Send a message", autocomplete: "off" %>
+            <%= f.submit "Send" %>
+          <% end %>
+        <% end %>
+      </section>
+    <% elsif authenticated? && @site.content_live? && (Current.user.owner? || Current.user.admin? || @group.created_by == Current.user) %>
+      <%= button_to "Open group chat", group_chat_path(@group), method: :post, class: "button" %>
+    <% else %>
+      <p>This group has not opened a live chat yet.</p>
+    <% end %>
+  </section>
+</main>

@@ -62,6 +62,18 @@ Rails.application.configure do
     protocol: ENV.fetch("FORCE_SSL", "false") == "true" ? "https" : "http"
   }
 
+  # Limit browser and WebSocket requests to the configured public host. Local
+  # loopback hosts remain available for an on-server health check and a fresh
+  # Compose installation before DNS is configured.
+  public_host = ENV.fetch("VOWLOOM_HOST", "localhost")
+  allowed_hosts = [ public_host, "localhost", "127.0.0.1", "::1" ].uniq
+  config.hosts = allowed_hosts
+  config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  allowed_protocols = ENV["FORCE_SSL"] == "true" ? [ "https" ] : [ "http", "https" ]
+  config.action_cable.allowed_request_origins = allowed_hosts.product(allowed_protocols).map do |host, protocol|
+    "#{protocol}://#{host}"
+  end
+
   # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
   # config.action_mailer.smtp_settings = {
   #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
@@ -80,13 +92,4 @@ Rails.application.configure do
 
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
-
-  # Enable DNS rebinding protection and other `Host` header attacks.
-  # config.hosts = [
-  #   "example.com",     # Allow requests from example.com
-  #   /.*\.example\.com/ # Allow requests from subdomains like `www.example.com`
-  # ]
-  #
-  # Skip DNS rebinding protection for the default health check endpoint.
-  # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end

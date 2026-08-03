@@ -38,6 +38,10 @@ class Question < ApplicationRecord
     true
   end
 
+  def structure_locked?
+    answers.exists?
+  end
+
   private
 
   def conditional_question_is_earlier_question

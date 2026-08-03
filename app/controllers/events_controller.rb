@@ -9,6 +9,8 @@ class EventsController < ApplicationController
   end
 
   def show
+    return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
+
     @event = @site.events.find(params[:id])
     redirect_to events_path, alert: "That event is private." and return unless @event.visible_to?(Current.user)
     @available_invitees = @site.invitees.order(:last_name, :first_name) if site_manager?
@@ -29,6 +31,8 @@ class EventsController < ApplicationController
   end
 
   def calendar
+    return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
+
     @event = @site.events.find(params[:id])
     return redirect_to(events_path, alert: "That event is private.") unless @event.visible_to?(Current.user)
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_021000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_023000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -272,10 +272,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_021000) do
     t.bigint "user_id", null: false
     t.integer "visibility", default: 0, null: false
     t.index ["event_id"], name: "index_posts_on_event_id"
+    t.index ["group_id"], name: "index_posts_on_group_conversation", unique: true, where: "((conversation = true) AND (group_id IS NOT NULL))"
     t.index ["group_id"], name: "index_posts_on_group_id"
     t.index ["postable_type", "postable_id"], name: "index_posts_on_postable_type_and_postable_id"
-    t.index ["site_id", "conversation"], name: "index_posts_on_site_conversation", unique: true, where: "(conversation = true)"
     t.index ["site_id", "space", "published_at"], name: "index_posts_on_site_id_and_space_and_published_at"
+    t.index ["site_id"], name: "index_posts_on_global_conversation", unique: true, where: "((conversation = true) AND (group_id IS NULL))"
     t.index ["site_id"], name: "index_posts_on_site_id"
     t.index ["user_id"], name: "index_posts_on_user_id"
   end
@@ -343,6 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_021000) do
     t.datetime "created_at", null: false
     t.text "private_note"
     t.datetime "purchased_at"
+    t.datetime "purchaser_revealed_at"
     t.integer "quantity", default: 1, null: false
     t.datetime "received_at"
     t.bigint "registry_item_id", null: false
@@ -367,6 +369,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_021000) do
   end
 
   create_table "registry_items", force: :cascade do |t|
+    t.string "category"
     t.datetime "created_at", null: false
     t.string "currency", default: "USD", null: false
     t.text "description"
@@ -378,6 +381,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_021000) do
     t.bigint "registry_collection_id", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_registry_items_on_category"
     t.index ["registry_collection_id"], name: "index_registry_items_on_registry_collection_id"
   end
 

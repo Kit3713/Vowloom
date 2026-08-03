@@ -1,8 +1,137 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><nav><%= link_to "Main", feed_path("main") %><%= link_to "Events", events_path %><%= link_to "Registry", registry_collections_path %></nav></header>
-  <section class="feed-shell"><p class="eyebrow">Wedding registry</p><h1>Registry</h1>
-    <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %><%= form_with model: @collection, class: "composer" do |f| %><%= f.label :title, "Collection name" %><%= f.text_field :title, required: true %><%= f.label :description %><%= f.text_area :description %><%= f.label :visibility %><%= f.select :visibility, [["Everyone", "everyone"], ["Members only", "members_only"]] %><%= f.submit "Create collection", class: "button" %><% end %><% end %>
-    <% @collections.each do |collection| %><article class="post-card"><h2><%= collection.title %></h2><%= simple_format(collection.description) %><% collection.registry_items.where(published: true).each do |item| %><section class="registry-item"><strong><%= item.title %></strong><span><%= item.available_quantity %> remaining</span><p><%= item.description %></p><%= link_to "View item", item.external_url, target: "_blank", rel: "noopener" if item.external_url.present? %><% claim = @my_claims[item.id] %><% if claim %><p>Your claim: <strong><%= claim.status.humanize %></strong></p><% if authenticated? && @site.content_live? && claim.reserved? %><%= form_with model: claim, class: "inline-form" do |f| %><%= f.label :status, "Update claim" %><%= f.select :status, [["Purchased", "purchased"], ["Release reservation", "released"]] %><%= f.submit "Save", class: "button button-secondary" %><% end %><% end %><% elsif authenticated? && @site.content_live? && item.available_quantity.positive? %><%= button_to "Reserve one", registry_item_claims_path(item), params: { quantity: 1 }, class: "button" %><% end %></section><% end %><% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %><%= form_with url: registry_collection_registry_items_path(collection), class: "stack" do |f| %><%= f.label "registry_item[title]", "Add item" %><%= f.text_field "registry_item[title]", required: true %><%= f.label "registry_item[external_url]", "Purchase link" %><%= f.url_field "registry_item[external_url]" %><%= f.label "registry_item[quantity_requested]", "Quantity" %><%= f.number_field "registry_item[quantity_requested]", value: 1, min: 1 %><%= f.submit "Add item", class: "button button-secondary" %><% end %><% end %></article><% end %>
-    <% if @staff_claims.any? %><section class="post-card"><h2>Private gift tracking</h2><% @staff_claims.each do |claim| %><article class="management-row"><div><strong><%= claim.registry_item.title %></strong><br><%= claim.user.display_name %> · <%= claim.status.humanize %> · <%= claim.received_at ? "Received" : "Not received" %> · <%= claim.thank_you_sent_at ? "Thank-you sent" : "Thank-you pending" %></div><% if @site.content_live? %><%= form_with model: claim, class: "inline-form" do |f| %><%= f.label :private_note, "Private note" %><%= f.text_field :private_note %><%= f.submit "Save note", class: "button button-secondary" %><% end %><%= button_to "Mark received", registry_claim_path(claim), method: :patch, params: { registry_claim: {}, mark_received: 1 }, class: "text-button" unless claim.received_at %><%= button_to "Mark thank-you sent", registry_claim_path(claim), method: :patch, params: { registry_claim: {}, mark_thank_you_sent: 1 }, class: "text-button" unless claim.thank_you_sent_at %><% end %></article><% end %></section><% end %>
+  <header class="community-header">
+    <%= link_to @site.name, community_path, class: "brand" %>
+    <nav>
+      <%= link_to "Main", feed_path("main") %>
+      <%= link_to "Events", events_path %>
+      <%= link_to "Registry", registry_collections_path %>
+    </nav>
+  </header>
+
+  <section class="feed-shell">
+    <p class="eyebrow">Wedding registry</p>
+    <h1>Registry</h1>
+    <p>Reserve a gift here before purchasing it from the linked store. Vowloom never processes payments.</p>
+
+    <% @collections.each do |collection| %>
+      <article class="post-card">
+        <h2><%= collection.title %></h2>
+        <%= simple_format(collection.description) if collection.description.present? %>
+
+        <% collection.registry_items.where(published: true).order(:category, :priority, :title).each do |item| %>
+          <section class="registry-item">
+            <%= image_tag item.image.variant(resize_to_limit: [320, 240]), alt: item.title if item.image.attached? %>
+            <div>
+              <strong><%= item.title %></strong>
+              <span><%= item.available_quantity %> remaining</span>
+              <p>
+                <%= item.category.presence || "Gift" %>
+                <% if item.price_cents.present? %> · <%= number_to_currency(item.price_cents / 100.0, unit: item.currency == "USD" ? "$" : "#{item.currency} ") %><% end %>
+                <% if item.priority_most_wanted? %> · Most wanted<% elsif item.priority_wanted? %> · Wanted<% end %>
+              </p>
+              <%= simple_format(item.description) if item.description.present? %>
+              <%= link_to "View item", item.external_url, target: "_blank", rel: "noopener" if item.external_url.present? %>
+
+              <% claim = @my_claims[item.id] %>
+              <% if claim %>
+                <p>Your claim: <strong><%= claim.status.humanize %></strong></p>
+                <% if authenticated? && @site.content_live? && claim.reserved? %>
+                  <%= form_with model: claim, class: "inline-form" do |f| %>
+                    <%= f.label :status, "Update claim" %>
+                    <%= f.select :status, [["Purchased", "purchased"], ["Release reservation", "released"]] %>
+                    <%= f.submit "Save", class: "button button-secondary" %>
+                  <% end %>
+                <% end %>
+              <% elsif authenticated? && @site.content_live? && item.available_quantity.positive? %>
+                <%= button_to "Reserve one", registry_item_claims_path(item), params: { quantity: 1 }, class: "button" %>
+              <% end %>
+            </div>
+
+            <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
+              <details>
+                <summary>Manage this item</summary>
+                <%= form_with model: item, class: "stack" do |f| %>
+                  <%= f.label :title %>
+                  <%= f.text_field :title, required: true, maxlength: 180 %>
+                  <%= f.label :description %>
+                  <%= f.text_area :description, rows: 3 %>
+                  <%= f.label :category %>
+                  <%= f.text_field :category, maxlength: 80, placeholder: "Kitchen, cash fund, charity…" %>
+                  <%= f.label :external_url, "Purchase link" %>
+                  <%= f.url_field :external_url %>
+                  <%= f.label :price_cents, "Estimated price (in cents)" %>
+                  <%= f.number_field :price_cents, min: 0 %>
+                  <%= f.label :quantity_requested %>
+                  <%= f.number_field :quantity_requested, min: 1 %>
+                  <%= f.label :priority %>
+                  <%= f.select :priority, [["Nice to have", "nice_to_have"], ["Wanted", "wanted"], ["Most wanted", "most_wanted"]] %>
+                  <%= f.label :image, "Photo" %>
+                  <%= f.file_field :image, accept: "image/png,image/jpeg,image/webp,image/gif" %>
+                  <%= f.label :published, "Show to members" %>
+                  <%= f.check_box :published %>
+                  <%= f.submit "Save item", class: "button button-secondary" %>
+                <% end %>
+              </details>
+            <% end %>
+          </section>
+        <% end %>
+
+        <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
+          <details>
+            <summary>Add registry item</summary>
+            <%= form_with url: registry_collection_registry_items_path(collection), class: "stack" do |f| %>
+              <%= f.label "registry_item[title]", "Title" %>
+              <%= f.text_field "registry_item[title]", required: true, maxlength: 180 %>
+              <%= f.label "registry_item[description]", "Description" %>
+              <%= f.text_area "registry_item[description]", rows: 3 %>
+              <%= f.label "registry_item[category]", "Category" %>
+              <%= f.text_field "registry_item[category]", maxlength: 80, placeholder: "Kitchen, cash fund, charity…" %>
+              <%= f.label "registry_item[external_url]", "Purchase link" %>
+              <%= f.url_field "registry_item[external_url]" %>
+              <%= f.label "registry_item[price_cents]", "Estimated price (in cents)" %>
+              <%= f.number_field "registry_item[price_cents]", min: 0 %>
+              <%= f.label "registry_item[quantity_requested]", "Quantity" %>
+              <%= f.number_field "registry_item[quantity_requested]", value: 1, min: 1 %>
+              <%= f.label "registry_item[priority]", "Priority" %>
+              <%= f.select "registry_item[priority]", [["Nice to have", "nice_to_have"], ["Wanted", "wanted"], ["Most wanted", "most_wanted"]] %>
+              <%= f.label "registry_item[image]", "Photo" %>
+              <%= f.file_field "registry_item[image]", accept: "image/png,image/jpeg,image/webp,image/gif" %>
+              <%= f.submit "Add item", class: "button button-secondary" %>
+            <% end %>
+          </details>
+        <% end %>
+      </article>
+    <% end %>
+
+    <% if @collections.empty? %>
+      <section class="empty-surface"><p>No registry collections have been published yet.</p></section>
+    <% end %>
+
+    <% if @staff_claims.any? %>
+      <section class="post-card">
+        <h2>Private gift tracking</h2>
+        <p>Purchaser names stay hidden until a gift is received or you explicitly reveal the claim.</p>
+        <% @staff_claims.each do |claim| %>
+          <article class="management-row">
+            <div>
+              <strong><%= claim.registry_item.title %></strong><br>
+              <%= claim.purchaser_visible? ? claim.user.display_name : "Purchaser hidden" %> · <%= claim.status.humanize %> ·
+              <%= claim.received_at ? "Received" : "Not received" %> ·
+              <%= claim.thank_you_sent_at ? "Thank-you sent" : "Thank-you pending" %>
+            </div>
+            <% if @site.content_live? %>
+              <%= form_with model: claim, class: "inline-form" do |f| %>
+                <%= f.label :private_note, "Private note" %>
+                <%= f.text_field :private_note %>
+                <%= f.submit "Save note", class: "button button-secondary" %>
+              <% end %>
+              <%= button_to "Reveal purchaser", registry_claim_path(claim), method: :patch, params: { registry_claim: {}, reveal_purchaser: 1 }, class: "text-button" unless claim.purchaser_visible? %>
+              <%= button_to "Mark received", registry_claim_path(claim), method: :patch, params: { registry_claim: {}, mark_received: 1 }, class: "text-button" unless claim.received_at %>
+              <%= button_to "Mark thank-you sent", registry_claim_path(claim), method: :patch, params: { registry_claim: {}, mark_thank_you_sent: 1 }, class: "text-button" unless claim.thank_you_sent_at %>
+            <% end %>
+          </article>
+        <% end %>
+      </section>
+    <% end %>
   </section>
 </main>

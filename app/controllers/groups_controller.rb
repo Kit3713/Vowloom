@@ -9,8 +9,11 @@ class GroupsController < ApplicationController
   end
 
   def show
+    return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
+
     @group = @site.groups.find(params[:id])
     return redirect_to(groups_path, alert: "That group is private.") unless @group.accessible_to?(Current.user)
+    @conversation = @group.posts.visible.find_by(conversation: true)
     @posts = @group.posts.visible.chronological
     @post = @group.posts.build(space: :group_space, visibility: @group.private_group? ? :members_only : :everyone)
     @available_members = @site.users.order(:display_name) if manage_group?(@group)

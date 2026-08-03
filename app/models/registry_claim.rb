@@ -3,4 +3,8 @@ class RegistryClaim < ApplicationRecord
   belongs_to :user
   enum :status, { reserved: 0, purchased: 1, released: 2 }, default: :reserved
   validates :quantity, numericality: { greater_than: 0 }
+
+  def purchaser_visible?
+    received_at.present? || purchaser_revealed_at.present?
+  end
 end

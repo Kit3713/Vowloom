@@ -37,14 +37,14 @@ Rails.application.routes.draw do
     patch :rsvp, to: "rsvps#update"
     resources :event_invitations, only: %i[create update destroy]
   end
-  resources :questionnaires, only: %i[index show create] do
-    resources :questions, only: :create
+  resources :questionnaires, only: %i[index show create update] do
+    resources :questions, only: %i[create update destroy]
     resource :response, only: :create, controller: "questionnaire_responses"
   end
   resources :registry_collections, only: %i[index create] do
     resources :registry_items, only: :create
   end
-  resources :registry_items, only: [] do
+  resources :registry_items, only: :update do
     resources :registry_claims, only: :create
   end
   resources :registry_claims, only: :update
@@ -53,6 +53,7 @@ Rails.application.routes.draw do
     resources :tasks, only: %i[create update] do
       resources :task_comments, only: :create
     end
+    resource :chat, only: %i[show create], controller: "group_chats"
   end
   get "gallery", to: "gallery#index"
   resources :albums, only: :create

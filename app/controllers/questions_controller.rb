@@ -12,6 +12,32 @@ class QuestionsController < ApplicationController
     end
   end
 
+  def update
+    questionnaire = current_site.questionnaires.find(params[:questionnaire_id])
+    return redirect_to(questionnaire, alert: "You cannot edit that questionnaire.") unless questionnaire.manageable_by?(Current.user)
+
+    question = questionnaire.questions.find(params[:id])
+    attributes = question_params
+    attributes = attributes.slice(:prompt) if question.structure_locked?
+    if question.update(attributes)
+      notice = question.structure_locked? ? "Question wording updated. Existing answers keep their original structure." : "Question updated."
+      redirect_to questionnaire, notice:
+    else
+      redirect_to questionnaire, alert: question.errors.full_messages.to_sentence
+    end
+  end
+
+  def destroy
+    questionnaire = current_site.questionnaires.find(params[:questionnaire_id])
+    return redirect_to(questionnaire, alert: "You cannot edit that questionnaire.") unless questionnaire.manageable_by?(Current.user)
+
+    question = questionnaire.questions.find(params[:id])
+    return redirect_to(questionnaire, alert: "Questions with answers cannot be removed.") if question.structure_locked?
+
+    question.destroy!
+    redirect_to questionnaire, notice: "Question removed."
+  end
+
   private
 
   def question_params

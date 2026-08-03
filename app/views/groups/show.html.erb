@@ -8,6 +8,7 @@
     <p class="eyebrow"><%= @group.participation.humanize %> group</p>
     <h1><%= @group.name %></h1>
     <%= simple_format(@group.description) %>
+    <p><%= link_to "Open live chat", group_chat_path(@group), class: "button button-secondary" if @conversation %></p>
 
     <% if @available_members %>
       <section class="post-card">

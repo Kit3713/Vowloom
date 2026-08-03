@@ -15,6 +15,8 @@ class RegistryClaimsController < ApplicationController
       claim.update!(staff_claim_params)
       claim.update!(received_at: Time.current) if params[:mark_received] == "1" && claim.received_at.blank?
       claim.update!(thank_you_sent_at: Time.current) if params[:mark_thank_you_sent] == "1" && claim.thank_you_sent_at.blank?
+      claim.update!(purchaser_revealed_at: Time.current) if params[:reveal_purchaser] == "1" && claim.purchaser_revealed_at.blank?
+      record_audit!("registry_gift_tracking_updated", auditable: claim, metadata: { claim_id: claim.id })
       return redirect_to(registry_collections_path, notice: "Gift tracking updated.")
     end
 
@@ -38,6 +40,6 @@ class RegistryClaimsController < ApplicationController
   end
 
   def staff_claim_params
-    params.require(:registry_claim).permit(:private_note)
+    params.fetch(:registry_claim, {}).permit(:private_note)
   end
 end

@@ -19,6 +19,8 @@ podman compose up --build
 
 For a non-local deployment, copy `.env.example` to `.env`, set a strong `POSTGRES_PASSWORD`, supply the Rails master key, and set `FORCE_SSL=true` behind an HTTPS reverse proxy.
 
+The `web` container exposes a health endpoint at `/up` and only accepts the hostname in `VOWLOOM_HOST` (plus local loopback checks). Set that value to the exact public hostname before deploying.
+
 ## Local Rails development
 
 Requirements: Ruby 4.0+, PostgreSQL 16+, and Bundler.

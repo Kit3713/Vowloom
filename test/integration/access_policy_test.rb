@@ -74,6 +74,18 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Rehearsal"
   end
 
+  test "private sites do not expose a site-wide event or group by direct link" do
+    @site.update!(access_policy: :private_access)
+    event = @site.events.create!(title: "Reception")
+    group = @site.groups.create!(name: "Family", created_by: @owner)
+
+    get event_path(event)
+    assert_redirected_to new_session_path
+
+    get group_path(group)
+    assert_redirected_to new_session_path
+  end
+
   private
 
   def create_user(name, role)

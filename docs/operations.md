@@ -18,10 +18,10 @@ Place Vowloom behind an HTTPS reverse proxy and set `FORCE_SSL=true`. Do not exp
 
 ## Backup
 
-Back up both PostgreSQL and the persistent media volume. Either command below works with Docker; replace `docker` with `podman` where supported by the local installation.
+Back up the complete PostgreSQL cluster and the persistent media volume. A full cluster dump includes Vowloom's separate Action Cable database as well as the primary application database. Either command below works with Docker; replace `docker` with `podman` where supported by the local installation.
 
 ```sh
-docker compose exec -T db pg_dump -U vowloom -d vowloom_production > vowloom-production.sql
+docker compose exec -T db pg_dumpall -U vowloom > vowloom-postgres.sql
 ```
 
 ```sh
@@ -35,9 +35,22 @@ Also retain the matching `.env` secrets (especially `RAILS_MASTER_KEY`) in a sec
 Practice restoration on an isolated host before relying on it for a wedding archive:
 
 1. Start a clean Compose stack with the same Vowloom release and secrets.
-2. Restore the PostgreSQL dump into `vowloom_production` with `psql`.
-3. Restore `vowloom-media.tar.gz` into the `vowloom_media_data` volume.
+2. Restore `vowloom-postgres.sql` so both `vowloom_production` and `vowloom_production_cable` are restored:
+
+   ```sh
+   docker compose exec -T db psql -U vowloom -d postgres < vowloom-postgres.sql
+   ```
+
+3. Restore `vowloom-media.tar.gz` into the `vowloom_media_data` volume:
+
+   ```sh
+   docker run --rm -v vowloom_media_data:/data -v "$PWD":/backup alpine tar -C /data -xzf /backup/vowloom-media.tar.gz
+   ```
 4. Run `docker compose exec web bin/rails db:prepare`.
 5. Sign in, open the Gallery, and download both the archive manifest and readable HTML archive to confirm posts, RSVP data, and media metadata agree.
 
 The Owner can freeze the site and download immutable public-safe or complete JSON manifests plus matching standalone readable HTML archives. The HTML file is script-free and works as an offline reading copy, but neither export contains the original media bytes or replaces a database/media backup. Keep periodic database and media-volume backups for the life of the archive.
+
+## Runtime checks
+
+The web service reports healthy only after Rails can answer `GET /up`; inspect it with `docker compose ps` or `podman compose ps`. Compose restarts the database and web services after an unexpected exit. Test this path and the restore rehearsal before the event, then monitor the same health endpoint from the reverse proxy or an external uptime monitor.
