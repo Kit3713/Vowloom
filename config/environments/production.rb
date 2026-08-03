@@ -50,8 +50,11 @@ Rails.application.configure do
   # Replace the default in-process memory cache store with a durable alternative.
   # config.cache_store = :mem_cache_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  # config.active_job.queue_adapter = :resque
+  # Durable background work for email, exports, and media housekeeping. The
+  # queue uses the primary PostgreSQL database so the self-hosted Compose stack
+  # stays small; Puma starts its supervisor through SOLID_QUEUE_IN_PUMA.
+  config.active_job.queue_adapter = :solid_queue
+  config.solid_queue.connects_to = { database: { writing: :primary } }
 
   # Email is opt-in and disabled by default. Providing an SMTP address enables
   # delivery for account recovery and important announcements. This prevents a

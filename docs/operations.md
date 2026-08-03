@@ -25,6 +25,16 @@ provide `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_BUCKET`. Set
 for MinIO-style deployments. The bucket contents are part of the wedding
 archive and must be included in the backup plan.
 
+### Background jobs
+
+The web container starts a durable Solid Queue supervisor alongside Puma. It
+uses the same PostgreSQL database as Vowloom, so no Redis, second database, or
+extra service is required. This processes important-announcement email and
+album ZIP export jobs after a request returns. Keep `JOB_CONCURRENCY=1` for a
+small wedding site; raise it only after confirming the host has enough CPU,
+memory, and database connections. Inspect a running worker with
+`docker compose exec web bin/rails solid_queue:check`.
+
 ## Backup
 
 Back up the complete PostgreSQL cluster and the persistent media volume. A full cluster dump includes Vowloom's separate Action Cable database as well as the primary application database. Either command below works with Docker; replace `docker` with `podman` where supported by the local installation.

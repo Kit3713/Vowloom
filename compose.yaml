@@ -33,6 +33,8 @@ services:
       VOWLOOM_HOST: ${VOWLOOM_HOST:-localhost}
       VOWLOOM_DATABASE_HOST: db
       VOWLOOM_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-local-development-password}
+      SOLID_QUEUE_IN_PUMA: "true"
+      JOB_CONCURRENCY: ${JOB_CONCURRENCY:-1}
     ports:
       - "${WEB_PORT:-3000}:80"
     volumes:
