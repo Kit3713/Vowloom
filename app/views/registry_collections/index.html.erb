@@ -17,6 +17,16 @@
       <article class="post-card">
         <h2><%= collection.title %></h2>
         <%= simple_format(collection.description) if collection.description.present? %>
+        <%= turbo_stream_from collection if authenticated? %>
+        <%= render "totals", collection: %>
+
+        <% if collection.external_registry_url.present? || collection.charity_url.present? || collection.cash_fund_url.present? %>
+          <nav class="registry-links" aria-label="<%= collection.title %> giving links">
+            <%= link_to "Visit external registry", collection.external_registry_url, target: "_blank", rel: "noopener" if collection.external_registry_url.present? %>
+            <%= link_to "Give to charity", collection.charity_url, target: "_blank", rel: "noopener" if collection.charity_url.present? %>
+            <%= link_to "Contribute to cash fund", collection.cash_fund_url, target: "_blank", rel: "noopener" if collection.cash_fund_url.present? %>
+          </nav>
+        <% end %>
 
         <% collection.registry_items.where(published: true).order(:category, :priority, :title).each do |item| %>
           <section class="registry-item">
@@ -43,7 +53,7 @@
                   <% end %>
                 <% end %>
               <% elsif authenticated? && @site.content_live? && item.available_quantity.positive? %>
-                <%= button_to "Reserve one", registry_item_claims_path(item), params: { quantity: 1 }, class: "button" %>
+                <%= button_to "Reserve one", registry_item_registry_claims_path(item), params: { quantity: 1 }, class: "button" %>
               <% end %>
             </div>
 
@@ -77,6 +87,27 @@
         <% end %>
 
         <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
+          <details>
+            <summary>Manage this collection</summary>
+            <%= form_with model: collection, class: "stack" do |f| %>
+              <%= f.label :title %>
+              <%= f.text_field :title, required: true, maxlength: 180 %>
+              <%= f.label :description %>
+              <%= f.text_area :description, rows: 3 %>
+              <%= f.label :external_registry_url, "External registry link" %>
+              <%= f.url_field :external_registry_url, placeholder: "https://…" %>
+              <%= f.label :charity_url, "Charity link" %>
+              <%= f.url_field :charity_url, placeholder: "https://…" %>
+              <%= f.label :cash_fund_url, "Cash-fund link" %>
+              <%= f.url_field :cash_fund_url, placeholder: "https://…" %>
+              <%= f.label :visibility, "Who can see this collection" %>
+              <%= f.select :visibility, [["Everyone", "everyone"], ["Members only", "members_only"]] %>
+              <%= f.label :published, "Show this collection" %>
+              <%= f.check_box :published %>
+              <%= f.submit "Save collection", class: "button button-secondary" %>
+            <% end %>
+          </details>
+
           <details>
             <summary>Add registry item</summary>
             <%= form_with url: registry_collection_registry_items_path(collection), class: "stack" do |f| %>

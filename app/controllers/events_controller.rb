@@ -15,19 +15,50 @@ class EventsController < ApplicationController
     redirect_to events_path, alert: "That event is private." and return unless @event.visible_to?(Current.user)
     @available_invitees = @site.invitees.order(:last_name, :first_name) if site_manager?
     @household_invitations = household_invitations_for_current_user
+    @event_history = event_history if site_manager?
   end
 
   def create
     require_live_site!
+    return if performed?
     return redirect_to(events_path, alert: "Only staff can create events.") unless staff?
 
     @event = @site.events.build(event_params)
     if @event.save
+      record_audit!("event.created", auditable: @event, metadata: event_details(@event))
       redirect_to @event, notice: "Event created."
     else
       @events = @site.events.order(:starts_at)
       render :index, status: :unprocessable_content
     end
+  end
+
+  def update
+    require_live_site!
+    return if performed?
+    return redirect_to(events_path, alert: "Only staff can edit events.") unless staff?
+
+    @event = @site.events.find(params[:id])
+    if @event.update(event_params)
+      record_audit!("event.updated", auditable: @event, metadata: changed_fields(@event))
+      redirect_to @event, notice: "Event updated."
+    else
+      @available_invitees = @site.invitees.order(:last_name, :first_name) if site_manager?
+      @household_invitations = household_invitations_for_current_user
+      @event_history = event_history if site_manager?
+      render :show, status: :unprocessable_content
+    end
+  end
+
+  def destroy
+    require_live_site!
+    return if performed?
+    return redirect_to(events_path, alert: "Only staff can delete events.") unless staff?
+
+    @event = @site.events.find(params[:id])
+    record_audit!("event.deleted", auditable: @event, metadata: event_details(@event))
+    @event.destroy!
+    redirect_to events_path, notice: "Event deleted."
   end
 
   def calendar
@@ -55,7 +86,24 @@ class EventsController < ApplicationController
   end
 
   def event_params
-    params.require(:event).permit(:title, :description, :starts_at, :ends_at, :location_name, :location_address, :map_url, :visibility, :meal_options_text)
+    params.require(:event).permit(:title, :description, :starts_at, :ends_at, :rsvp_deadline, :location_name, :location_address, :map_url, :visibility, :meal_options_text)
+  end
+
+  def changed_fields(event)
+    { changed_fields: event.previous_changes.except("updated_at").keys, title: event.title }
+  end
+
+  def event_details(event)
+    {
+      title: event.title,
+      starts_at: event.starts_at,
+      rsvp_deadline: event.rsvp_deadline,
+      visibility: event.visibility
+    }
+  end
+
+  def event_history
+    @site.audit_events.where(auditable: @event).includes(:actor).order(created_at: :desc).limit(50)
   end
 
   def calendar_content(event)

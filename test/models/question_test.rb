@@ -33,4 +33,14 @@ class QuestionTest < ActiveSupport::TestCase
     @questionnaire.update!(results_visibility: :member_visible)
     assert @questionnaire.individual_results_visible_to?(member)
   end
+
+  test "respondent-and-staff policies do not expose shared result summaries" do
+    member = @site.users.create!(display_name: "Member", login_identifier: "member-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123")
+    response = @questionnaire.responses.create!(user: member, submitted_at: Time.current)
+    @questionnaire.update!(results_visibility: :respondent_and_staff)
+
+    assert_not @questionnaire.results_visible_to?(member)
+    assert @questionnaire.response_visible_to?(response, member)
+    assert @questionnaire.response_visible_to?(response, @owner)
+  end
 end

@@ -1,0 +1,9 @@
+<div id="registry_collection_<%= collection.id %>_totals" class="registry-totals" aria-live="polite">
+  <% if collection.requested_quantity.positive? %>
+    <strong><%= collection.claimed_quantity %> of <%= collection.requested_quantity %> gifts reserved</strong>
+    <span><%= collection.remaining_quantity %> remaining</span>
+  <% else %>
+    <strong>External giving links</strong>
+    <span>Choose any option below.</span>
+  <% end %>
+</div>

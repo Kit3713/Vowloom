@@ -18,7 +18,7 @@ class QuestionsController < ApplicationController
 
     question = questionnaire.questions.find(params[:id])
     attributes = question_params
-    attributes = attributes.slice(:prompt) if question.structure_locked?
+    attributes = attributes.slice(:prompt, :section) if question.structure_locked?
     if question.update(attributes)
       notice = question.structure_locked? ? "Question wording updated. Existing answers keep their original structure." : "Question updated."
       redirect_to questionnaire, notice:
@@ -41,7 +41,7 @@ class QuestionsController < ApplicationController
   private
 
   def question_params
-    permitted = params.require(:question).permit(:kind, :prompt, :required, :options_text, :conditional_question_id, :conditional_value)
+    permitted = params.require(:question).permit(:kind, :prompt, :section, :required, :options_text, :conditional_question_id, :conditional_value)
     permitted[:options] = permitted.delete(:options_text).to_s.lines.map(&:strip).reject(&:blank?)
     conditional_question_id = permitted.delete(:conditional_question_id)
     conditional_value = permitted.delete(:conditional_value)

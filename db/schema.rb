@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -132,6 +132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
     t.string "location_name"
     t.string "map_url"
     t.jsonb "meal_options", default: [], null: false
+    t.datetime "rsvp_deadline"
     t.bigint "site_id", null: false
     t.datetime "starts_at"
     t.string "title", null: false
@@ -316,6 +317,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
     t.bigint "group_id"
     t.text "introduction"
     t.datetime "opens_at"
+    t.integer "response_edit_policy", default: 0, null: false
     t.integer "response_scope", default: 0, null: false
     t.integer "results_visibility", default: 0, null: false
     t.bigint "site_id", null: false
@@ -337,8 +339,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
     t.text "prompt", null: false
     t.bigint "questionnaire_id", null: false
     t.boolean "required", default: false, null: false
+    t.string "section"
     t.datetime "updated_at", null: false
     t.index ["questionnaire_id", "position"], name: "index_questions_on_questionnaire_id_and_position", unique: true
+    t.index ["questionnaire_id", "section", "position"], name: "index_questions_on_questionnaire_section_and_position"
     t.index ["questionnaire_id"], name: "index_questions_on_questionnaire_id"
   end
 
@@ -360,8 +364,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_025000) do
   end
 
   create_table "registry_collections", force: :cascade do |t|
+    t.string "cash_fund_url"
+    t.string "charity_url"
     t.datetime "created_at", null: false
     t.text "description"
+    t.string "external_registry_url"
     t.boolean "published", default: false, null: false
     t.bigint "site_id", null: false
     t.string "title", null: false

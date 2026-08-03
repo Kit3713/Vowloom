@@ -21,6 +21,8 @@ class KioskDisplayTest < ActionDispatch::IntegrationTest
     assert_select "strong", text: "Public reception"
     assert_select "strong", text: "Private rehearsal", count: 0
     assert_select "body", text: /Private note/, count: 0
+    assert_select ".kiosk-join img[src^='data:image/png;base64,']", count: 1
+    assert_select ".kiosk-join", text: /Join the wedding community on your phone/
   end
 
   test "owner updates a display preset and refresh interval" do

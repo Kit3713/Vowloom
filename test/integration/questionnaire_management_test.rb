@@ -16,8 +16,9 @@ class QuestionnaireManagementTest < ActionDispatch::IntegrationTest
         title: "Arrival plans",
         introduction: "Please tell us when you arrive.",
         status: "closed",
+        response_edit_policy: "locked_after_submission",
         response_scope: "individual",
-        results_visibility: "aggregate",
+        results_visibility: "respondent_and_staff",
         opens_at: "2028-06-01T09:00",
         closes_at: "2028-06-05T09:00",
         group_id: "",
@@ -29,7 +30,8 @@ class QuestionnaireManagementTest < ActionDispatch::IntegrationTest
     @questionnaire.reload
     assert_predicate @questionnaire, :closed?
     assert_equal "Please tell us when you arrive.", @questionnaire.introduction
-    assert_predicate @questionnaire, :aggregate?
+    assert_predicate @questionnaire, :respondent_and_staff?
+    assert_predicate @questionnaire, :locked_after_submission?
     assert_equal Time.zone.parse("2028-06-05 09:00"), @questionnaire.closes_at
   end
 
@@ -38,12 +40,13 @@ class QuestionnaireManagementTest < ActionDispatch::IntegrationTest
     response.answers.create!(question: @question, value: { "answer" => "Friday" })
 
     patch questionnaire_question_path(@questionnaire, @question), params: {
-      question: { prompt: "Which day will you arrive?", kind: "long_text", options_text: "Anything" }
+      question: { prompt: "Which day will you arrive?", section: "Travel details", kind: "long_text", options_text: "Anything" }
     }
 
     assert_redirected_to questionnaire_path(@questionnaire)
     @question.reload
     assert_equal "Which day will you arrive?", @question.prompt
+    assert_equal "Travel details", @question.section
     assert_equal "single_choice", @question.kind
     assert_equal [ "Friday", "Saturday" ], @question.options
 

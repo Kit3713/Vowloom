@@ -20,7 +20,12 @@ class EventInvitationsController < ApplicationController
   def update
     invitation = @event.event_invitations.find(params[:id])
     invitation.update!(rsvp_params.merge(responded_at: Time.current))
-    record_audit!("event_invitation.rsvp_updated", auditable: invitation, metadata: { rsvp_status: invitation.rsvp_status, staff_entered: true })
+    record_audit!("event_invitation.rsvp_updated", auditable: @event, metadata: {
+      invitee_id: invitation.invitee_id,
+      rsvp_status: invitation.rsvp_status,
+      staff_entered: true,
+      changed_fields: invitation.previous_changes.except("updated_at", "responded_at").keys
+    })
     redirect_to @event, notice: "RSVP updated for #{invitation.invitee.full_name}."
   end
 

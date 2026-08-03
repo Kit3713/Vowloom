@@ -4,7 +4,7 @@ class QuestionnairesController < ApplicationController
 
   def index
     redirect_to new_session_path, alert: "Please sign in with your wedding invitation." and return if @site.private_access? && !authenticated?
-    @questionnaires = @site.questionnaires.published.order(created_at: :desc).select { |questionnaire| questionnaire.available_to?(Current.user) }
+    @questionnaires = @site.questionnaires.where.not(status: :draft).order(created_at: :desc).select { |questionnaire| questionnaire.available_to?(Current.user) }
     @questionnaire = @site.questionnaires.build
     @available_groups = @site.groups.select { |group| group.accessible_to?(Current.user) }
     @available_events = @site.events.select { |event| event.visible_to?(Current.user) }
@@ -14,8 +14,9 @@ class QuestionnairesController < ApplicationController
     return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
 
     @questionnaire = @site.questionnaires.find(params[:id])
-    redirect_to questionnaires_path, alert: "That questionnaire is not available." and return unless (@questionnaire.published? && @questionnaire.available_to?(Current.user)) || @questionnaire.manageable_by?(Current.user)
+    redirect_to questionnaires_path, alert: "That questionnaire is not available." and return unless (!@questionnaire.draft? && @questionnaire.available_to?(Current.user)) || @questionnaire.manageable_by?(Current.user)
     @response = response_for_current_user || @questionnaire.responses.build
+    @response_editable = @questionnaire.response_editable?(@response)
     @staff_entry_invitees = @site.invitees.order(:last_name, :first_name) if staff?
     @result_summaries = build_result_summaries if @questionnaire.results_visible_to?(Current.user)
   end
@@ -75,7 +76,7 @@ class QuestionnairesController < ApplicationController
   end
 
   def questionnaire_params
-    params.require(:questionnaire).permit(:title, :introduction, :response_scope, :results_visibility, :opens_at, :closes_at, :group_id, :event_id)
+    params.require(:questionnaire).permit(:title, :introduction, :response_scope, :response_edit_policy, :results_visibility, :opens_at, :closes_at, :group_id, :event_id)
   end
 
   def questionnaire_update_params

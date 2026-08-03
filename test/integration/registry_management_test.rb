@@ -5,7 +5,7 @@ class RegistryManagementTest < ActionDispatch::IntegrationTest
     @site = Site.create!(name: "Vowloom test", accent_color: "#8f4f6a")
     @owner = @site.users.create!(display_name: "Owner", login_identifier: "owner-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", role: :owner)
     @member = @site.users.create!(display_name: "Member", login_identifier: "member-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123")
-    @collection = @site.registry_collections.create!(title: "Home")
+    @collection = @site.registry_collections.create!(title: "Home", published: true)
     @item = @collection.registry_items.create!(title: "Mixer", quantity_requested: 2)
     @claim = @item.claim!(@member)
     post session_path, params: { login_identifier: @owner.login_identifier, password: "password123" }
@@ -38,5 +38,55 @@ class RegistryManagementTest < ActionDispatch::IntegrationTest
     assert_redirected_to registry_collections_path
     assert_predicate @claim.reload, :purchaser_visible?
     assert AuditEvent.exists?(action: "registry_gift_tracking_updated", auditable: @claim)
+  end
+
+  test "staff can manage collection links and visitors see safe giving options with live totals" do
+    patch registry_collection_path(@collection), params: {
+      registry_collection: {
+        title: "Giving", description: "Choose what feels right.", external_registry_url: "https://example.test/registry",
+        charity_url: "https://example.test/charity", cash_fund_url: "https://example.test/fund"
+      }
+    }
+
+    assert_redirected_to registry_collections_path
+    @collection.reload
+    assert_equal "https://example.test/registry", @collection.external_registry_url
+    assert AuditEvent.exists?(action: "registry_collection_updated", auditable: @collection)
+
+    get registry_collections_path
+    assert_select "summary", text: "Manage this collection"
+    assert_select "turbo-cable-stream-source", count: 1
+
+    delete session_path
+    get registry_collections_path
+
+    assert_response :success
+    assert_select "a[href='https://example.test/registry']", text: "Visit external registry"
+    assert_select "a[href='https://example.test/charity']", text: "Give to charity"
+    assert_select "a[href='https://example.test/fund']", text: "Contribute to cash fund"
+    assert_select "#registry_collection_#{@collection.id}_totals", text: /1 of 2 gifts reserved/
+    assert_select "#registry_collection_#{@collection.id}_totals", text: /Member/, count: 0
+  end
+
+  test "staff cannot save unsafe collection links" do
+    patch registry_collection_path(@collection), params: {
+      registry_collection: { external_registry_url: "javascript:alert(1)" }
+    }
+
+    assert_redirected_to registry_collections_path
+    assert_nil @collection.reload.external_registry_url
+    follow_redirect!
+    assert_select ".flash", text: /complete http or https link/
+  end
+
+  test "frozen sites cannot update collection links" do
+    @site.update!(content_state: :frozen)
+
+    patch registry_collection_path(@collection), params: {
+      registry_collection: { external_registry_url: "https://example.test/registry" }
+    }
+
+    assert_redirected_to community_path
+    assert_nil @collection.reload.external_registry_url
   end
 end

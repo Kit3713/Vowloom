@@ -11,6 +11,21 @@ class RegistryCollectionsController < ApplicationController
     @staff_claims = site_manager? ? RegistryClaim.joins(registry_item: :registry_collection).where(registry_collections: { site_id: @site.id }).includes(:user, registry_item: :registry_collection).order(created_at: :desc) : []
   end
 
+  def update
+    require_live_site!
+    return if @site.content_frozen?
+
+    return redirect_to(registry_collections_path, alert: "Only staff can manage the registry.") unless staff?
+
+    @collection = @site.registry_collections.find(params[:id])
+    if @collection.update(collection_params)
+      record_audit!("registry_collection_updated", auditable: @collection)
+      redirect_to registry_collections_path, notice: "Registry collection updated."
+    else
+      redirect_to registry_collections_path, alert: @collection.errors.full_messages.to_sentence
+    end
+  end
+
   def create
     require_live_site!
     return redirect_to(registry_collections_path, alert: "Only staff can manage the registry.") unless staff?
@@ -39,6 +54,9 @@ class RegistryCollectionsController < ApplicationController
   end
 
   def collection_params
-    params.require(:registry_collection).permit(:title, :description, :visibility)
+    params.require(:registry_collection).permit(
+      :title, :description, :visibility, :published,
+      :external_registry_url, :charity_url, :cash_fund_url
+    )
   end
 end

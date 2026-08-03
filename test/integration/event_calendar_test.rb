@@ -111,4 +111,99 @@ class EventCalendarTest < ActionDispatch::IntegrationTest
     assert_nil other_invitation.meal_choice
     assert_nil other_invitation.dietary_notes
   end
+
+  test "staff can edit and delete an event with a recorded lifecycle history" do
+    owner = @site.users.create!(display_name: "Owner", login_identifier: "owner-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", role: :owner)
+    post session_path, params: { login_identifier: owner.login_identifier, password: "password123" }
+
+    patch event_path(@event), params: {
+      event: {
+        title: "Updated reception",
+        starts_at: 2.days.from_now,
+        rsvp_deadline: 1.day.from_now,
+        visibility: "site_wide"
+      }
+    }
+
+    assert_redirected_to event_path(@event)
+    @event.reload
+    assert_equal "Updated reception", @event.title
+    audit = @site.audit_events.order(:created_at).last
+    assert_equal "event.updated", audit.action
+    assert_equal @event, audit.auditable
+    assert_includes audit.metadata.fetch("changed_fields"), "title"
+
+    assert_difference "Event.count", -1 do
+      delete event_path(@event)
+    end
+
+    assert_redirected_to events_path
+    assert_equal "event.deleted", @site.audit_events.order(:created_at).last.action
+  end
+
+  test "member RSVP changes close at the deadline while staff can still record a response" do
+    invitee = @site.invitees.create!(first_name: "Jamie", last_name: "Guest")
+    member = @site.users.create!(display_name: "Jamie", login_identifier: "jamie-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", invitee: invitee)
+    @event.update!(starts_at: 2.days.from_now, rsvp_deadline: 1.hour.ago)
+    invitation = @event.event_invitations.create!(invitee: invitee)
+    post session_path, params: { login_identifier: member.login_identifier, password: "password123" }
+
+    patch event_rsvp_path(@event), params: { rsvp: { rsvp_status: "attending" } }
+
+    assert_redirected_to event_path(@event)
+    assert_includes flash[:alert], "RSVPs closed"
+    assert_predicate invitation.reload, :pending?
+    get event_path(@event)
+    assert_select "p", text: /RSVPs are now closed/
+    assert_select "form[action='#{event_rsvp_path(@event)}']", count: 0
+
+    delete session_path
+    owner = @site.users.create!(display_name: "Owner", login_identifier: "owner-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", role: :owner)
+    post session_path, params: { login_identifier: owner.login_identifier, password: "password123" }
+    patch event_event_invitation_path(@event, invitation), params: { event_invitation: { rsvp_status: "attending" } }
+
+    assert_predicate invitation.reload, :attending?
+    audit = @site.audit_events.order(:created_at).last
+    assert_equal "event_invitation.rsvp_updated", audit.action
+    assert_equal @event, audit.auditable
+    assert_equal true, audit.metadata.fetch("staff_entered")
+  end
+
+  test "member RSVP updates appear in the event staff history without copying private details" do
+    invitee = @site.invitees.create!(first_name: "Jamie", last_name: "Guest")
+    member = @site.users.create!(display_name: "Jamie", login_identifier: "jamie-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", invitee: invitee)
+    invitation = @event.event_invitations.create!(invitee: invitee)
+    post session_path, params: { login_identifier: member.login_identifier, password: "password123" }
+
+    patch event_rsvp_path(@event), params: { rsvp: { rsvp_status: "attending", dietary_notes: "No dairy" } }
+
+    audit = @site.audit_events.order(:created_at).last
+    assert_equal "event_invitation.rsvp_updated", audit.action
+    assert_equal @event, audit.auditable
+    assert_not_includes audit.metadata.to_json, "No dairy"
+
+    delete session_path
+    owner = @site.users.create!(display_name: "Owner", login_identifier: "owner-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", role: :owner)
+    post session_path, params: { login_identifier: owner.login_identifier, password: "password123" }
+    get event_path(@event)
+
+    assert_response :success
+    assert_select "h2", text: "Event history"
+    assert_select ".management-row", text: /Event invitation rsvp updated/
+  end
+
+  test "frozen sites do not allow staff to alter or remove events" do
+    owner = @site.users.create!(display_name: "Owner", login_identifier: "owner-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123", role: :owner)
+    @site.update!(content_state: :frozen)
+    post session_path, params: { login_identifier: owner.login_identifier, password: "password123" }
+
+    patch event_path(@event), params: { event: { title: "Changed after freeze" } }
+
+    assert_redirected_to community_path
+    assert_equal "Reception", @event.reload.title
+    assert_no_difference "Event.count" do
+      delete event_path(@event)
+    end
+    assert_redirected_to community_path
+  end
 end

@@ -9,7 +9,10 @@
   </header>
 
   <% if @display.show_qr_placeholder? %>
-    <p class="kiosk-join">Join the wedding community on your phone.</p>
+    <section class="kiosk-join" aria-label="Join the wedding community">
+      <%= image_tag @join_qr_data_url, alt: "QR code to open #{@join_url}", width: 240, height: 240 %>
+      <div><strong>Join the wedding community on your phone.</strong><p>Scan this code or visit <%= @join_url %></p></div>
+    </section>
   <% end %>
 
   <% if @display.schedule? || @display.mixed? %>

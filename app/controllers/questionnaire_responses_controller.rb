@@ -8,6 +8,8 @@ class QuestionnaireResponsesController < ApplicationController
 
     response = response_for(questionnaire)
     return redirect_to(questionnaire, alert: "Choose an invited person with a household for this response.") unless response
+    return redirect_to(questionnaire, alert: "This questionnaire accepts one submission per respondent.") unless questionnaire.response_editable?(response)
+
     response.save!
 
     submitted_answers = answer_values(response)

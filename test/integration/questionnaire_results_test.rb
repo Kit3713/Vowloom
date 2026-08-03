@@ -19,4 +19,15 @@ class QuestionnaireResultsTest < ActionDispatch::IntegrationTest
     assert_select ".questionnaire-results", text: /Song A: 1/
     assert_select ".questionnaire-results", text: /Member/, count: 0
   end
+
+  test "respondent-and-staff visibility keeps shared results private while describing the policy" do
+    @questionnaire.update!(results_visibility: :respondent_and_staff, status: :closed)
+
+    get questionnaire_path(@questionnaire)
+
+    assert_response :success
+    assert_select ".questionnaire-results", count: 0
+    assert_select ".muted", text: /Each respondent can review their own answers/
+    assert_select ".questionnaire-response-locked", text: /Song A/
+  end
 end

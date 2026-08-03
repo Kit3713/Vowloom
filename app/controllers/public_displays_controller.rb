@@ -1,3 +1,5 @@
+require "rqrcode"
+
 class PublicDisplaysController < ApplicationController
   allow_unauthenticated_access
 
@@ -15,6 +17,7 @@ class PublicDisplaysController < ApplicationController
       @questionnaire = candidate if candidate&.kiosk_displayable?
     end
     @questionnaire_results = aggregate_questionnaire_results if @questionnaire
+    build_join_code if @display.show_qr_placeholder?
   end
 
   private
@@ -36,5 +39,10 @@ class PublicDisplaysController < ApplicationController
 
   def kiosk_safe_question?(question)
     question.yes_no? || question.single_choice? || question.multiple_choice? || question.dropdown?
+  end
+
+  def build_join_code
+    @join_url = root_url
+    @join_qr_data_url = RQRCode::QRCode.new(@join_url, level: :m).as_png.resize(240, 240).to_data_url
   end
 end

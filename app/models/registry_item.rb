@@ -4,6 +4,8 @@ class RegistryItem < ApplicationRecord
   has_one_attached :image
   enum :priority, { nice_to_have: 0, wanted: 1, most_wanted: 2 }, prefix: true
 
+  after_commit :broadcast_collection_totals, on: %i[create update]
+
   validates :title, presence: true, length: { maximum: 180 }
   validates :category, length: { maximum: 80 }, allow_blank: true
   validates :quantity_requested, numericality: { greater_than: 0 }
@@ -11,6 +13,7 @@ class RegistryItem < ApplicationRecord
   validates :priority, inclusion: { in: priorities.keys }
   validate :external_url_is_http
   validate :image_is_an_image
+  validate :quantity_covers_active_claims
 
   def available_quantity
     quantity_requested - registry_claims.where(status: %i[reserved purchased]).sum(:quantity)
@@ -46,5 +49,24 @@ class RegistryItem < ApplicationRecord
     return if image.content_type.in?(%w[image/png image/jpeg image/webp image/gif]) && image.byte_size <= 10.megabytes
 
     errors.add(:image, "must be an image no larger than 10 MB")
+  end
+
+  def quantity_covers_active_claims
+    return if quantity_requested.blank? || !persisted?
+
+    active_quantity = registry_claims.where(status: %i[reserved purchased]).sum(:quantity)
+    return if quantity_requested >= active_quantity
+
+    errors.add(:quantity_requested, "cannot be lower than the #{active_quantity} gifts already reserved")
+  end
+
+  def broadcast_collection_totals
+    collection = registry_collection
+    Turbo::StreamsChannel.broadcast_update_to(
+      collection,
+      target: "registry_collection_#{collection.id}_totals",
+      partial: "registry_collections/totals",
+      locals: { collection: }
+    )
   end
 end

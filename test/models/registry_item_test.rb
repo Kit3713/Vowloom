@@ -42,4 +42,14 @@ class RegistryItemTest < ActiveSupport::TestCase
     claim.update!(received_at: Time.current)
     assert_predicate claim, :purchaser_visible?
   end
+
+  test "requested quantity cannot be lowered below active reservations" do
+    item = @collection.registry_items.create!(title: "Mixer", quantity_requested: 2)
+    item.claim!(@member, quantity: 2)
+
+    item.quantity_requested = 1
+
+    assert_not_predicate item, :valid?
+    assert_includes item.errors[:quantity_requested], "cannot be lower than the 2 gifts already reserved"
+  end
 end

@@ -10,6 +10,7 @@ class Question < ApplicationRecord
 
   validates :kind, inclusion: { in: TYPES }
   validates :prompt, presence: true, length: { maximum: 1_000 }
+  validates :section, length: { maximum: 120 }, allow_blank: true
   validates :position, numericality: { greater_than: 0 }
   validate :conditional_question_is_earlier_question
 

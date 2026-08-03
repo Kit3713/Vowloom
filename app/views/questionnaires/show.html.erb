@@ -8,6 +8,7 @@
     <p class="eyebrow">Questionnaire</p>
     <h1><%= @questionnaire.title %></h1>
     <%= simple_format(@questionnaire.introduction) %>
+    <p class="muted"><strong>Response changes:</strong> <%= @questionnaire.response_edit_policy_summary %><br><strong>Results:</strong> <%= @questionnaire.results_policy_summary %></p>
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @questionnaire.site.content_live? %>
       <section class="composer">
@@ -23,8 +24,10 @@
           <%= f.datetime_local_field :opens_at %>
           <%= f.label :closes_at, "Close responses (optional)" %>
           <%= f.datetime_local_field :closes_at %>
+          <%= f.label :response_edit_policy, "Response changes" %>
+          <%= f.select :response_edit_policy, [["Allow changes until close", "editable_until_close"], ["Lock after first submission", "locked_after_submission"]] %>
           <%= f.label :results_visibility %>
-          <%= f.select :results_visibility, [["Staff only", "staff_only"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %>
+          <%= f.select :results_visibility, [["Staff only", "staff_only"], ["Each respondent and staff", "respondent_and_staff"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %>
           <%= f.label :response_scope %>
           <%= f.select :response_scope, [["Individual", "individual"], ["Household", "household"]], disabled: @questionnaire.structure_locked? %>
           <%= f.label :group_id, "Group audience (optional)" %>
@@ -41,6 +44,8 @@
         <%= form_with url: questionnaire_questions_path(@questionnaire), class: "stack" do |f| %>
           <%= f.label "question[prompt]", "Question or information" %>
           <%= f.text_field "question[prompt]", required: true %>
+          <%= f.label "question[section]", "Section (optional)" %>
+          <%= f.text_field "question[section]", maxlength: 120, placeholder: "For example: Travel plans" %>
           <%= f.label "question[kind]", "Answer type" %>
           <%= f.select "question[kind]", Question::TYPES.map { |type| [type.humanize, type] } %>
           <%= f.label "question[options_text]", "Choices (one per line, if applicable)" %>
@@ -62,6 +67,8 @@
             <%= form_with model: [@questionnaire, question], class: "stack" do |f| %>
               <%= f.label :prompt, "Question #{question.position}" %>
               <%= f.text_area :prompt, required: true, rows: 2 %>
+              <%= f.label :section, "Section (optional)" %>
+              <%= f.text_field :section, maxlength: 120, placeholder: "For example: Travel plans" %>
               <% unless question.structure_locked? %>
                 <%= f.label :kind, "Answer type" %>
                 <%= f.select :kind, Question::TYPES.map { |type| [type.humanize, type] } %>
@@ -74,7 +81,7 @@
                 <%= f.check_box :required %>
                 <%= f.label :required, "Required" %>
               <% else %>
-                <p class="muted">Only the wording can change because this question already has answers.</p>
+                <p class="muted">Only the wording and section can change because this question already has answers.</p>
               <% end %>
               <%= f.submit "Save question", class: "button button-secondary" %>
               <% unless question.structure_locked? %><%= button_to "Remove question", questionnaire_question_path(@questionnaire, question), method: :delete, class: "button button-danger", form: { data: { turbo_confirm: "Remove this question?" } } %><% end %>
@@ -84,17 +91,20 @@
       <% end %>
     <% end %>
 
-    <% if authenticated? && @questionnaire.open_for_responses? %>
+    <% if authenticated? && @questionnaire.open_for_responses? && (@response_editable || @staff_entry_invitees) %>
       <% current_answers = @response.answers.index_by(&:question_id).transform_values { |answer| answer.value.fetch("answer", nil) } %>
       <%= form_with url: questionnaire_response_path(@questionnaire), class: "composer", data: { questionnaire_form: true } do |f| %>
         <% if @staff_entry_invitees %>
           <%= f.label :staff_invitee_id, "Record on behalf of (staff only, optional)" %>
           <%= f.select :staff_invitee_id, @staff_entry_invitees.map { |invitee| [invitee.full_name, invitee.id] }, include_blank: "Use my own response" %>
         <% end %>
-        <% @questionnaire.questions.each do |question| %>
-          <% if question.information? %>
-            <section class="question-information"><%= simple_format(question.prompt) %></section>
-          <% else %>
+        <% @questionnaire.questions.group_by { |question| question.section.presence || "Questions" }.each do |section_name, questions| %>
+          <fieldset class="questionnaire-section">
+            <legend><%= section_name %></legend>
+            <% questions.each do |question| %>
+              <% if question.information? %>
+                <section class="question-information"><%= simple_format(question.prompt) %></section>
+              <% else %>
             <% answer = @response.answers.find { |entry| entry.question_id == question.id } %>
             <% value = answer&.value&.fetch("answer", "") %>
             <% initially_visible = question.visible_for?(current_answers) %>
@@ -123,11 +133,25 @@
               <% else %>
                 <%= text_field_tag "answers[#{question.id}]", value, **field_options %>
               <% end %>
-            </section>
-          <% end %>
+                </section>
+              <% end %>
+            <% end %>
+          </fieldset>
         <% end %>
         <%= f.submit "Save answers", class: "button" %>
       <% end %>
+    <% elsif authenticated? && @response.submitted_at? %>
+      <section class="post-card questionnaire-response-locked">
+        <h2>Response received</h2>
+        <p><%= @questionnaire.locked_after_submission? ? "This questionnaire accepts one submission per respondent." : "This questionnaire is no longer open for changes." %> Your saved answers remain available to you and wedding staff.</p>
+        <% if @questionnaire.response_visible_to?(@response, Current.user) %>
+          <ul>
+            <% @response.answers.includes(:question).each do |answer| %>
+              <li><strong><%= answer.question.prompt %></strong>: <%= answer.question.file? ? "Uploaded a file" : Array(answer.value.fetch("answer", nil)).to_sentence %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </section>
     <% end %>
 
     <% if @result_summaries %>

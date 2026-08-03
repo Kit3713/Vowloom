@@ -41,4 +41,30 @@ class QuestionnaireResponseTest < ActionDispatch::IntegrationTest
     assert_redirected_to @questionnaire
     assert_equal "Pickup location is required.", flash[:alert]
   end
+
+  test "a locked response policy preserves the first submitted answer and shows a read-only receipt" do
+    @questionnaire.update!(response_edit_policy: :locked_after_submission)
+
+    post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "yes", @pickup_location.id => "Hotel" } }
+    post questionnaire_response_path(@questionnaire), params: { answers: { @needs_ride.id => "no" } }
+
+    response = @questionnaire.responses.find_by!(user: @member)
+    assert_equal "yes", response.answers.find_by!(question: @needs_ride).value.fetch("answer")
+    assert_equal "This questionnaire accepts one submission per respondent.", flash[:alert]
+
+    get questionnaire_path(@questionnaire)
+
+    assert_select ".questionnaire-response-locked", text: /Need a ride\?/
+    assert_select "form[data-questionnaire-form]", count: 0
+  end
+
+  test "questions are grouped into named sections for respondents" do
+    @needs_ride.update!(section: "Arrival")
+    @pickup_location.update!(section: "Transportation")
+
+    get questionnaire_path(@questionnaire)
+
+    assert_select "fieldset.questionnaire-section legend", text: "Arrival"
+    assert_select "fieldset.questionnaire-section legend", text: "Transportation"
+  end
 end

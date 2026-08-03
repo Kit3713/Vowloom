@@ -33,7 +33,7 @@ Rails.application.routes.draw do
   resources :posts, only: %i[create update] do
     resources :comments, only: :create
   end
-  resources :events, only: %i[index show create] do
+  resources :events, only: %i[index show create update destroy] do
     get :calendar, on: :member
     patch :rsvp, to: "rsvps#update"
     resources :event_invitations, only: %i[create update destroy]
@@ -42,7 +42,7 @@ Rails.application.routes.draw do
     resources :questions, only: %i[create update destroy]
     resource :response, only: :create, controller: "questionnaire_responses"
   end
-  resources :registry_collections, only: %i[index create] do
+  resources :registry_collections, only: %i[index create update] do
     resources :registry_items, only: :create
   end
   resources :registry_items, only: :update do

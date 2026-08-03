@@ -45,6 +45,8 @@ gem "image_processing", "~> 2.0"
 gem "ruby-vips", "~> 2.0"
 # Optional S3-compatible storage for self-hosted object stores such as MinIO.
 gem "aws-sdk-s3", require: false
+# Generates kiosk join codes locally, with no external QR-image service.
+gem "rqrcode", "~> 2.2"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
