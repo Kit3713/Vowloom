@@ -23,7 +23,8 @@ The `web` container exposes a health endpoint at `/up` and only accepts the host
 
 ## Local Rails development
 
-Requirements: Ruby 4.0+, PostgreSQL 16+, and Bundler.
+Requirements: Ruby 4.0+, PostgreSQL 16+, Bundler, and libvips for image uploads
+(`brew install vips` on macOS; `apt install libvips` on Debian/Ubuntu).
 
 ```sh
 bundle install
