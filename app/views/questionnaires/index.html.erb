@@ -1,9 +1,8 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><nav><%= link_to "Main", feed_path("main") %><%= link_to "Events", events_path %><%= link_to "Questions", questionnaires_path %></nav></header>
   <section class="feed-shell">
-    <p class="eyebrow">Planning and polls</p><h1>Questionnaires</h1>
+    <header class="page-intro"><div><p class="eyebrow">Planning and polls</p><h1>Questions</h1><p>RSVP details, meal choices, travel plans, song requests, and anything else the couple needs to ask.</p></div></header>
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
-      <%= form_with model: @questionnaire, class: "composer" do |f| %>
+      <details class="create-panel" <%= "open" if @questionnaire.errors.any? %>><summary><span class="create-icon"><%= social_icon(:plus) %></span><span>Create a questionnaire</span></summary><%= form_with model: @questionnaire, class: "composer" do |f| %>
         <%= label_tag :template, "Start from a template (optional)" %><%= select_tag :template, options_for_select(QuestionnaireTemplates.keys.map { |key| [key.humanize, key] }), include_blank: "Blank questionnaire" %>
         <%= f.label :title %><%= f.text_field :title %>
         <%= f.label :introduction %><%= f.text_area :introduction %>
@@ -18,10 +17,9 @@
         <%= f.label :response_edit_policy, "Response changes" %><%= f.select :response_edit_policy, [["Allow changes until close", "editable_until_close"], ["Lock after first submission", "locked_after_submission"]] %>
         <%= f.label :results_visibility %><%= f.select :results_visibility, [["Staff only", "staff_only"], ["Each respondent and staff", "respondent_and_staff"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %>
         <%= hidden_field_tag :publish_now, 1 %><%= f.submit "Create questionnaire", class: "button" %>
-      <% end %>
+      <% end %></details>
     <% end %>
-    <% @questionnaires.each do |questionnaire| %>
-      <article class="post-card"><h2><%= link_to questionnaire.title, questionnaire %></h2><p><%= questionnaire.introduction %></p><p><%= pluralize(questionnaire.questions.count, "question") %> · <%= questionnaire.audience_summary %> · <%= questionnaire.open_for_responses? ? "Open" : questionnaire.status.humanize %></p></article>
-    <% end %>
+    <section class="collection-grid"><% @questionnaires.each do |questionnaire| %><%= link_to questionnaire, class: "collection-card" do %><p class="eyebrow"><%= questionnaire.open_for_responses? ? "Open now" : questionnaire.status.humanize %></p><h2><%= questionnaire.title %></h2><p><%= truncate(questionnaire.introduction, length: 130) %></p><footer><%= pluralize(questionnaire.questions.count, "question") %> · <%= questionnaire.audience_summary %> →</footer><% end %><% end %></section>
+    <% if @questionnaires.empty? %><section class="empty-surface"><h2>Nothing to answer yet</h2><p>Questionnaires from the couple will appear here.</p></section><% end %>
   </section>
 </main>

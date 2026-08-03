@@ -1,15 +1,9 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header">
-    <%= link_to @site.name, community_path, class: "brand" %>
-    <nav><%= link_to "Main", feed_path("main") %><%= link_to "General", feed_path("general") %><%= link_to "Events", events_path %></nav>
-  </header>
-
   <section class="feed-shell">
-    <p class="eyebrow">Schedule</p>
-    <h1>Events</h1>
+    <header class="page-intro"><div><p class="eyebrow">Wedding schedule</p><h1>Events</h1><p>Everything guests need to know, from travel plans to the last dance.</p></div><%= link_to "Large calendar", calendar_path, class: "button button-secondary" %></header>
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
-      <%= form_with model: @event, class: "composer" do |f| %>
+      <details class="create-panel" <%= "open" if @event.errors.any? %>><summary><span class="create-icon"><%= social_icon(:plus) %></span><span>Create an event</span></summary><%= form_with model: @event, class: "composer" do |f| %>
         <%= f.label :title %>
         <%= f.text_field :title, required: true %>
         <%= f.label :description %>
@@ -31,17 +25,10 @@
         <%= f.label :visibility %>
         <%= f.select :visibility, [["Site-wide", "site_wide"], ["Invited people only", "invitees_only"]] %>
         <%= f.submit "Create event", class: "button" %>
-      <% end %>
+      <% end %></details>
     <% end %>
 
-    <% @events.each do |event| %>
-      <article class="post-card">
-        <h2><%= link_to event.title, event %></h2>
-        <p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %></p>
-        <% if event.rsvp_deadline.present? %><p><strong>RSVP by <%= event.rsvp_deadline.to_fs(:long) %></strong></p><% end %>
-        <p><%= event.location_name %></p>
-        <p><%= truncate(event.description, length: 180) %></p>
-      </article>
-    <% end %>
+    <section class="event-list"><% @events.each do |event| %><%= link_to event, class: "event-list-card" do %><time><strong><%= event.starts_at&.strftime("%b") || "TBA" %></strong><span><%= event.starts_at&.day || "—" %></span><small><%= event.starts_at&.year %></small></time><div><span class="event-kind"><%= event.site_wide? ? "Everyone" : "By invitation" %></span><h2><%= event.title %></h2><p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %><%= " · #{event.location_name}" if event.location_name.present? %></p><p><%= truncate(event.description, length: 180) %></p><% if event.rsvp_deadline.present? %><strong class="rsvp-note">RSVP by <%= event.rsvp_deadline.to_fs(:long) %></strong><% end %></div><span class="event-arrow" aria-hidden="true">→</span><% end %><% end %></section>
+    <% if @events.empty? %><section class="empty-surface"><h2>No events yet</h2><p>The wedding schedule will appear here.</p></section><% end %>
   </section>
 </main>

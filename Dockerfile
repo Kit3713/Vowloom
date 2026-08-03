@@ -54,6 +54,14 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# Optional validation image. Test-only gems stay out of the production image.
+# Works with either Docker or Podman: build --target test -t vowloom-test .
+FROM build AS test
+ENV RAILS_ENV="test" \
+    BUNDLE_DEPLOYMENT="0" \
+    BUNDLE_WITHOUT=""
+RUN bundle install
+CMD ["./bin/rails", "test"]
 
 
 

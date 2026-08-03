@@ -1,6 +1,10 @@
 module SiteAccess
   extend ActiveSupport::Concern
 
+  included do
+    helper_method :current_site
+  end
+
   private
 
   def current_site

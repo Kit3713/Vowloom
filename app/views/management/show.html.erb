@@ -1,7 +1,6 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><%= link_to "Back to community", community_path %></header>
   <section class="feed-shell">
-    <p class="eyebrow">Owner controls</p><h1>Manage Vowloom</h1><p><%= link_to "Archive snapshots and content exports", archive_snapshots_path %></p>
+    <header class="page-intro"><div><p class="eyebrow">Owner controls</p><h1>Manage site</h1><p>Wedding details, guests, trusted helpers, privacy, and preservation—all in one place.</p></div><%= link_to "Archives", archive_snapshots_path, class: "button button-secondary" %></header>
     <%= form_with model: @site, url: management_path, method: :patch, class: "composer" do |f| %>
       <h2>Website settings</h2>
       <p>These are the same wedding, cover, privacy, timezone, and storage choices offered during initialization. They remain editable here.</p>

@@ -1,17 +1,6 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header">
-    <%= link_to @site.name, community_path, class: "brand" %>
-    <nav>
-      <%= link_to "Main", feed_path("main") %>
-      <%= link_to "Events", events_path %>
-      <%= link_to "Registry", registry_collections_path %>
-    </nav>
-  </header>
-
   <section class="feed-shell">
-    <p class="eyebrow">Wedding registry</p>
-    <h1>Registry</h1>
-    <p>Reserve a gift here before purchasing it from the linked store. Vowloom never processes payments.</p>
+    <header class="page-intro"><div><p class="eyebrow">Wedding registry</p><h1>Registry</h1><p>Thoughtful gifts, shared funds, and causes the couple cares about. Vowloom tracks reservations but never processes payments.</p></div></header>
 
     <% @collections.each do |collection| %>
       <article class="post-card">

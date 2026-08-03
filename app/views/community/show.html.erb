@@ -1,24 +1,62 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header"><%= link_to @site.name, root_path, class: "brand" %><nav><%= link_to "Main", feed_path("main") %><%= link_to "General", feed_path("general") %><%= link_to "Events", events_path %><%= link_to "Calendar", calendar_path %><%= link_to "Questions", questionnaires_path %><%= link_to "Registry", registry_collections_path %><%= link_to "Gallery", gallery_path %><%= link_to "Groups", groups_path %><%= link_to "Chat", chat_path %><%= link_to "Search archive", archive_search_path if @site.content_frozen? %><%= link_to "Inbox", couple_inbox_path if authenticated? %><% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) %><%= link_to "Displays", kiosk_displays_path %><% end %><%= link_to "Moderation", moderation_path if authenticated? && (Current.user.owner? || Current.user.admin?) %><%= link_to "Reports", reports_path if authenticated? && (Current.user.owner? || Current.user.admin?) %><%= link_to "Audit log", audit_events_path if authenticated? && (Current.user.owner? || Current.user.admin?) %><%= link_to "Manage", management_path if authenticated? && Current.user.owner? %></nav><% if authenticated? %><span><%= link_to "Profile", edit_profile_path %> · Signed in as <%= Current.user.display_name %></span><% else %><%= link_to "Sign in", new_session_path, class: "button button-secondary" %><% end %></header>
-  <section class="community-hero" id="main"><p class="eyebrow"><%= @site.content_live? ? "Live community" : "Frozen wedding archive" %></p><h1><%= @site.name %></h1><p><%= @site.landing_message.presence || "Wedding news, plans, photos, and the history we create together." %></p></section>
+  <section class="community-profile">
+    <% if @site.banner_image.attached? %>
+      <%= image_tag @site.banner_image, class: "community-cover", alt: "" %>
+    <% else %>
+      <div class="community-cover community-cover-placeholder" aria-hidden="true"></div>
+    <% end %>
+    <div class="community-profile-body">
+      <div class="community-monogram" aria-hidden="true">V</div>
+      <div class="community-profile-copy">
+        <p class="eyebrow"><%= @site.content_live? ? "Wedding community" : "Preserved wedding archive" %></p>
+        <h1><%= @site.name %></h1>
+        <p><%= @site.landing_message.presence || "Wedding news, plans, photos, and the story we create together." %></p>
+      </div>
+    </div>
+    <nav class="profile-tabs" aria-label="Wedding home sections">
+      <%= link_to "Updates", feed_path("main") %>
+      <%= link_to "Community", feed_path("general") %>
+      <%= link_to "Photos", gallery_path %>
+      <%= link_to "About", events_path %>
+    </nav>
+  </section>
+
   <% if authenticated? && (@rsvp_invitations.any? || @open_questionnaires.any?) %>
-    <section class="community-actions" aria-label="Your wedding to-dos">
-      <p class="eyebrow">Your next steps</p>
-      <h2>Take care of these first</h2>
-      <% @rsvp_invitations.each do |invitation| %><%= link_to event_path(invitation.event), class: "action-card" do %><strong>RSVP for <%= invitation.event.title %></strong><span><%= invitation.event.starts_at&.to_fs(:long) || "Date to be announced" %></span><% end %><% end %>
-      <% @open_questionnaires.each do |questionnaire| %><%= link_to questionnaire_path(questionnaire), class: "action-card" do %><strong><%= questionnaire.title %></strong><span><%= questionnaire.closes_at ? "Respond by #{questionnaire.closes_at.to_fs(:long)}" : "Open questionnaire" %></span><% end %><% end %>
+    <section class="todo-card" aria-label="Your wedding to-dos">
+      <div class="todo-heading"><span class="todo-icon"><%= social_icon(:calendar) %></span><div><p class="eyebrow">For you</p><h2>Your next steps</h2></div></div>
+      <% @rsvp_invitations.each do |invitation| %>
+        <%= link_to event_path(invitation.event), class: "todo-row" do %><span><strong>RSVP for <%= invitation.event.title %></strong><small><%= invitation.event.starts_at&.to_fs(:long) || "Date to be announced" %></small></span><span aria-hidden="true">→</span><% end %>
+      <% end %>
+      <% @open_questionnaires.each do |questionnaire| %>
+        <%= link_to questionnaire_path(questionnaire), class: "todo-row" do %><span><strong><%= questionnaire.title %></strong><small><%= questionnaire.closes_at ? "Respond by #{questionnaire.closes_at.to_fs(:long)}" : "Open questionnaire" %></small></span><span aria-hidden="true">→</span><% end %>
+      <% end %>
     </section>
   <% end %>
-  <section class="community-overview">
-    <article class="post-card">
-      <p class="eyebrow">Official updates</p><h2><%= link_to "Main announcements", feed_path("main") %></h2>
-      <% @announcements.each do |post| %><div class="overview-item"><strong><%= post.title.presence || post.user.display_name %></strong><p><%= truncate(post.body, length: 160) %></p></div><% end %>
-      <p><%= link_to "See all updates", feed_path("main") %></p>
-    </article>
-    <article class="post-card" id="events">
-      <p class="eyebrow">Schedule</p><h2><%= link_to "Upcoming events", events_path %></h2>
-      <% @upcoming_events.each do |event| %><div class="overview-item"><strong><%= link_to event.title, event_path(event) %></strong><p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %><%= " · #{event.location_name}" if event.location_name.present? %></p></div><% end %>
-      <p><%= link_to "Open the full calendar", calendar_path %></p>
-    </article>
+
+  <section class="home-section-heading"><div><p class="eyebrow">From the couple</p><h2>Latest updates</h2></div><%= link_to "View all", feed_path("main") %></section>
+  <section class="home-feed">
+    <% @announcements.each do |post| %>
+      <article class="post-card home-post">
+        <header>
+          <span class="author"><% if post.user.profile_photo.attached? %><%= image_tag post.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(post.user) %></span><% end %><span><strong><%= post.user.display_name %></strong><small>Official update</small></span></span>
+          <time datetime="<%= post.published_at.iso8601 %>"><%= time_ago_in_words(post.published_at) %> ago</time>
+        </header>
+        <% if post.title.present? %><h2><%= link_to post.title, feed_path("main", anchor: dom_id(post)) %></h2><% end %>
+        <%= simple_format(truncate(post.body, length: 360)) %>
+        <footer><%= pluralize(post.comments.visible.count, "comment") %></footer>
+      </article>
+    <% end %>
+    <% if @announcements.empty? %><section class="empty-surface"><h2>The story starts here</h2><p>Official updates from the couple will appear in this space.</p></section><% end %>
+  </section>
+
+  <section class="home-section-heading"><div><p class="eyebrow">Save the date</p><h2>Coming up</h2></div><%= link_to "Full calendar", calendar_path %></section>
+  <section class="event-strip">
+    <% @upcoming_events.each do |event| %>
+      <%= link_to event_path(event), class: "event-preview" do %>
+        <time><strong><%= event.starts_at&.strftime("%b") || "TBA" %></strong><span><%= event.starts_at&.day || "—" %></span></time>
+        <div><h3><%= event.title %></h3><p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %></p><small><%= event.location_name.presence || "Location coming soon" %></small></div>
+      <% end %>
+    <% end %>
+    <% if @upcoming_events.empty? %><p class="muted">Wedding events will appear here as the schedule takes shape.</p><% end %>
   </section>
 </main>

@@ -25,9 +25,13 @@
 
   <body>
     <a class="skip-link" href="#page-content">Skip to page content</a>
-    <%= render "shared/flash" %>
-    <div id="page-content" tabindex="-1">
-      <%= yield %>
-    </div>
+    <% if social_shell? %>
+      <%= render layout: "shared/social_shell", locals: { site: current_site } do %>
+        <%= yield %>
+      <% end %>
+    <% else %>
+      <%= render "shared/flash" %>
+      <div id="page-content" tabindex="-1"><%= yield %></div>
+    <% end %>
   </body>
 </html>

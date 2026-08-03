@@ -1,20 +1,9 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
-  <header class="community-header">
-    <%= link_to @site.name, community_path, class: "brand" %>
-    <nav>
-      <%= link_to "Main", feed_path("main") %>
-      <%= link_to "General", feed_path("general") %>
-      <%= link_to "Gallery", gallery_path %>
-    </nav>
-  </header>
-
   <section class="feed-shell">
-    <p class="eyebrow">Wedding media</p>
-    <h1>Gallery</h1>
-    <p><%= number_to_human_size(@media_bytes_used) %> of <%= number_to_human_size(@site.media_quota_bytes) %> media storage used.</p>
+    <header class="page-intro"><div><p class="eyebrow">The visual story</p><h1>Gallery</h1><p>Professional portraits, candid moments, and the wedding as everyone saw it.</p></div><span class="storage-note"><strong><%= number_to_human_size(@media_bytes_used) %></strong> used</span></header>
 
     <% if authenticated? && @site.content_live? %>
-      <%= form_with model: @media_asset, class: "composer" do |f| %>
+      <details class="create-panel"><summary><% if Current.user.profile_photo.attached? %><%= image_tag Current.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(Current.user) %></span><% end %><span>Add a photo or video</span></summary><%= form_with model: @media_asset, class: "composer" do |f| %>
         <%= f.label :file, "Upload photo or video" %>
         <%= f.file_field :file, required: true, accept: "image/*,video/*" %>
         <%= f.label :caption %>
@@ -22,17 +11,17 @@
         <%= f.label :credit %>
         <%= f.text_field :credit %>
         <%= f.submit "Upload", class: "button" %>
-      <% end %>
+      <% end %></details>
     <% end %>
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
-      <%= form_with model: @album, class: "composer" do |f| %>
+      <details class="create-panel"><summary><span class="create-icon"><%= social_icon(:plus) %></span><span>Create an album</span></summary><%= form_with model: @album, class: "composer" do |f| %>
         <%= f.label :title, "New album" %>
         <%= f.text_field :title, required: true %>
         <%= f.label :visibility %>
         <%= f.select :visibility, [["Members only", "members_only"], ["Everyone", "everyone"]] %>
         <%= f.submit "Create album", class: "button button-secondary" %>
-      <% end %>
+      <% end %></details>
 
       <% unless @submitted_assets.empty? %>
         <section class="post-card">
@@ -66,7 +55,7 @@
     <% end %>
 
     <% unless @media_assets.empty? %>
-      <section class="media-grid">
+      <section class="media-grid gallery-grid">
         <% @media_assets.each do |asset| %>
           <figure>
             <% if asset.image? %>

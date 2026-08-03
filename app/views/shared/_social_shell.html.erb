@@ -1,0 +1,99 @@
+<div class="social-app" style="--accent: <%= site.accent_color %>">
+  <header class="social-topbar">
+    <%= link_to community_path, class: "social-wordmark", aria: { label: "#{site.name} home" } do %>
+      <span class="social-wordmark-mark" aria-hidden="true">V</span>
+      <span>Vowloom</span>
+    <% end %>
+    <%= link_to community_path, class: "social-wedding-title" do %>
+      <span><%= site.name %></span>
+      <small><%= site.wedding_date&.to_fs(:long) || "Wedding community" %></small>
+    <% end %>
+    <nav class="social-account" aria-label="Account">
+      <% if authenticated? %>
+        <%= link_to edit_profile_path, class: "account-chip" do %>
+          <% if Current.user.profile_photo.attached? %><%= image_tag Current.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(Current.user) %></span><% end %>
+          <span><%= Current.user.display_name %></span>
+        <% end %>
+      <% else %>
+        <%= link_to "Sign in", new_session_path, class: "button button-compact" %>
+      <% end %>
+    </nav>
+  </header>
+
+  <div class="social-layout">
+    <aside class="social-sidebar" aria-label="Wedding navigation">
+      <nav class="social-nav">
+        <% [
+          ["Wedding home", community_path, :home],
+          ["Main updates", feed_path("main"), :announcement],
+          ["General", feed_path("general"), :people],
+          ["Events", events_path, :calendar],
+          ["Calendar", calendar_path, :calendar],
+          ["Gallery", gallery_path, :image],
+          ["Groups", groups_path, :groups],
+          ["Questions", questionnaires_path, :questions],
+          ["Registry", registry_collections_path, :gift],
+          ["Wedding chat", chat_path, :chat]
+        ].each do |label, destination, icon| %>
+          <%= link_to destination, class: ["social-nav-link", { active: social_nav_active?(destination) }], aria: ({ current: "page" } if social_nav_active?(destination)) do %>
+            <%= social_icon(icon) %><span><%= label %></span>
+          <% end %>
+        <% end %>
+      </nav>
+
+      <% if authenticated? %>
+        <div class="social-nav-section">
+          <p>My wedding</p>
+          <%= link_to couple_inbox_path, class: ["social-nav-link", { active: social_nav_active?(couple_inbox_path) }] do %><%= social_icon(:inbox) %><span>Couple inbox</span><% end %>
+          <% if Current.user.owner? || Current.user.admin? || Current.user.helper? %>
+            <%= link_to kiosk_displays_path, class: ["social-nav-link", { active: social_nav_active?(kiosk_displays_path) }] do %><%= social_icon(:image) %><span>Displays</span><% end %>
+          <% end %>
+          <% if Current.user.owner? %>
+            <%= link_to management_path, class: ["social-nav-link", { active: social_nav_active?(management_path) }] do %><%= social_icon(:settings) %><span>Manage site</span><% end %>
+          <% end %>
+        </div>
+      <% end %>
+      <p class="social-sidebar-footer">Private, self-hosted, and yours.<br>Powered by Vowloom.</p>
+    </aside>
+
+    <div class="social-main" id="page-content" tabindex="-1">
+      <%= render "shared/flash" %>
+      <%= yield %>
+    </div>
+
+    <aside class="wedding-rail" aria-label="Wedding at a glance">
+      <section class="wedding-card">
+        <% if site.banner_image.attached? %><%= image_tag site.banner_image, class: "wedding-card-cover", alt: "" %><% else %><div class="wedding-card-cover wedding-card-placeholder" aria-hidden="true"><span>V</span></div><% end %>
+        <div class="wedding-card-body">
+          <p class="eyebrow">The wedding</p>
+          <h2><%= site.name %></h2>
+          <p class="wedding-date"><%= site.wedding_date&.to_fs(:long) || "Date to be announced" %></p>
+          <strong class="countdown"><%= wedding_countdown(site) %></strong>
+        </div>
+      </section>
+
+      <% upcoming_events = site.events.site_wide.where("starts_at IS NULL OR starts_at >= ?", Time.current).order(:starts_at).limit(3) %>
+      <section class="rail-card">
+        <div class="rail-card-heading"><h2>Coming up</h2><%= link_to "See all", events_path %></div>
+        <% upcoming_events.each do |event| %>
+          <%= link_to event_path(event), class: "rail-event" do %>
+            <time><strong><%= event.starts_at&.strftime("%b") || "TBA" %></strong><span><%= event.starts_at&.day || "—" %></span></time>
+            <span><strong><%= event.title %></strong><small><%= event.starts_at&.strftime("%-I:%M %p") || "Time coming soon" %></small></span>
+          <% end %>
+        <% end %>
+        <% if upcoming_events.empty? %><p class="muted">The schedule will appear here.</p><% end %>
+      </section>
+
+      <section class="rail-card rail-status">
+        <span class="status-dot <%= site.content_live? ? "is-live" : "is-frozen" %>"></span>
+        <div><strong><%= site.content_live? ? "Community is live" : "Preserved archive" %></strong><small><%= site.content_live? ? "Members can post and respond" : "This history is read-only" %></small></div>
+      </section>
+    </aside>
+  </div>
+
+  <nav class="mobile-social-nav" aria-label="Primary navigation">
+    <% [["Home", community_path, :home], ["Main", feed_path("main"), :announcement], ["Events", events_path, :calendar], ["Gallery", gallery_path, :image], ["More", groups_path, :menu]].each do |label, destination, icon| %>
+      <%= link_to destination, class: ({ active: social_nav_active?(destination) }) do %><%= social_icon(icon) %><span><%= label %></span><% end %>
+    <% end %>
+  </nav>
+</div>
