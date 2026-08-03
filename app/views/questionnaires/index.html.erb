@@ -1,1 +1,27 @@
-<main class="community-page" style="--accent: <%= @site.accent_color %>"><header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><nav><%= link_to "Main", feed_path("main") %><%= link_to "Events", events_path %><%= link_to "Questions", questionnaires_path %></nav></header><section class="feed-shell"><p class="eyebrow">Planning and polls</p><h1>Questionnaires</h1><% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %><%= form_with model: @questionnaire, class: "composer" do |f| %><%= label_tag :template, "Start from a template (optional)" %><%= select_tag :template, options_for_select(QuestionnaireTemplates.keys.map { |key| [key.humanize, key] }), include_blank: "Blank questionnaire" %><%= f.label :title %><%= f.text_field :title %><%= f.label :introduction %><%= f.text_area :introduction %><%= f.label :group_id, "Group audience (optional)" %><%= f.select :group_id, @available_groups.map { |group| [group.name, group.id] }, include_blank: "All members" %><%= f.label :event_id, "Event invitee audience (optional)" %><%= f.select :event_id, @available_events.map { |event| [event.title, event.id] }, include_blank: "All members" %><%= f.label :response_scope %><%= f.select :response_scope, [["Individual", "individual"], ["Household", "household"]] %><%= f.label :response_edit_policy, "Response changes" %><%= f.select :response_edit_policy, [["Allow changes until close", "editable_until_close"], ["Lock after first submission", "locked_after_submission"]] %><%= f.label :results_visibility %><%= f.select :results_visibility, [["Staff only", "staff_only"], ["Each respondent and staff", "respondent_and_staff"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %><%= hidden_field_tag :publish_now, 1 %><%= f.submit "Create questionnaire", class: "button" %><% end %><% end %><% @questionnaires.each do |questionnaire| %><article class="post-card"><h2><%= link_to questionnaire.title, questionnaire %></h2><p><%= questionnaire.introduction %></p><p><%= pluralize(questionnaire.questions.count, "question") %> · <%= questionnaire.open_for_responses? ? "Open" : questionnaire.status.humanize %></p></article><% end %></section></main>
+<main class="community-page" style="--accent: <%= @site.accent_color %>">
+  <header class="community-header"><%= link_to @site.name, community_path, class: "brand" %><nav><%= link_to "Main", feed_path("main") %><%= link_to "Events", events_path %><%= link_to "Questions", questionnaires_path %></nav></header>
+  <section class="feed-shell">
+    <p class="eyebrow">Planning and polls</p><h1>Questionnaires</h1>
+    <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
+      <%= form_with model: @questionnaire, class: "composer" do |f| %>
+        <%= label_tag :template, "Start from a template (optional)" %><%= select_tag :template, options_for_select(QuestionnaireTemplates.keys.map { |key| [key.humanize, key] }), include_blank: "Blank questionnaire" %>
+        <%= f.label :title %><%= f.text_field :title %>
+        <%= f.label :introduction %><%= f.text_area :introduction %>
+        <%= f.label :group_id, "Group audience (optional)" %><%= f.select :group_id, @available_groups.map { |group| [group.name, group.id] }, include_blank: "All members" %>
+        <%= f.label :event_id, "Event invitee audience (optional)" %><%= f.select :event_id, @available_events.map { |event| [event.title, event.id] }, include_blank: "All members" %>
+        <%= f.label :targeted_invitee_ids, "Specific people (optional)" %>
+        <%= f.select :targeted_invitee_ids, @site.invitees.order(:last_name, :first_name).map { |invitee| [invitee.full_name, invitee.id] }, {}, multiple: true, size: 6 %>
+        <%= f.label :targeted_household_ids, "Specific households (optional)" %>
+        <%= f.select :targeted_household_ids, @site.households.order(:name).map { |household| [household.name, household.id] }, {}, multiple: true, size: 4 %>
+        <p class="muted">Leave both lists empty for every member. If you choose people or households, only those linked member profiles can view or answer; staff can record an answer for an invited person.</p>
+        <%= f.label :response_scope %><%= f.select :response_scope, [["Individual", "individual"], ["Household", "household"]] %>
+        <%= f.label :response_edit_policy, "Response changes" %><%= f.select :response_edit_policy, [["Allow changes until close", "editable_until_close"], ["Lock after first submission", "locked_after_submission"]] %>
+        <%= f.label :results_visibility %><%= f.select :results_visibility, [["Staff only", "staff_only"], ["Each respondent and staff", "respondent_and_staff"], ["Aggregate results", "aggregate"], ["Members can see responses", "member_visible"]] %>
+        <%= hidden_field_tag :publish_now, 1 %><%= f.submit "Create questionnaire", class: "button" %>
+      <% end %>
+    <% end %>
+    <% @questionnaires.each do |questionnaire| %>
+      <article class="post-card"><h2><%= link_to questionnaire.title, questionnaire %></h2><p><%= questionnaire.introduction %></p><p><%= pluralize(questionnaire.questions.count, "question") %> · <%= questionnaire.audience_summary %> · <%= questionnaire.open_for_responses? ? "Open" : questionnaire.status.humanize %></p></article>
+    <% end %>
+  </section>
+</main>

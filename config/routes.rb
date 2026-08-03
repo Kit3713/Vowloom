@@ -51,6 +51,7 @@ Rails.application.routes.draw do
   resources :registry_claims, only: :update
   resources :groups, only: %i[index show create] do
     resources :group_memberships, only: %i[create destroy]
+    resources :group_resources, only: %i[create destroy]
     resources :tasks, only: %i[create update] do
       resources :task_comments, only: :create
     end

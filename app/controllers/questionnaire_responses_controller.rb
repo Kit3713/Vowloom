@@ -3,11 +3,11 @@ class QuestionnaireResponsesController < ApplicationController
 
   def create
     questionnaire = current_site.questionnaires.find(params[:questionnaire_id])
-    return redirect_to(questionnaire, alert: "This questionnaire is not available to you.") unless questionnaire.available_to?(Current.user)
+    return redirect_to(questionnaire, alert: "This questionnaire is not available to you.") unless questionnaire.available_to?(Current.user) || questionnaire.manageable_by?(Current.user)
     return redirect_to(questionnaire, alert: "This questionnaire is closed.") unless questionnaire.open_for_responses?
 
     response = response_for(questionnaire)
-    return redirect_to(questionnaire, alert: "Choose an invited person with a household for this response.") unless response
+    return redirect_to(questionnaire, alert: "Choose an invited person included in this questionnaire's audience.") unless response
     return redirect_to(questionnaire, alert: "This questionnaire accepts one submission per respondent.") unless questionnaire.response_editable?(response)
 
     response.save!
@@ -54,6 +54,7 @@ class QuestionnaireResponsesController < ApplicationController
 
   def staff_response_for(questionnaire)
     invitee = current_site.invitees.find(params[:staff_invitee_id])
+    return unless questionnaire.audience_includes_invitee?(invitee)
     return questionnaire.responses.find_or_initialize_by(invitee:) unless questionnaire.household?
 
     questionnaire.responses.find_or_initialize_by(household: invitee.household) if invitee.household

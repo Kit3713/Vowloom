@@ -41,7 +41,7 @@
             <article class="post-card">
               <p><strong><%= asset.user.display_name %></strong> uploaded <%= asset.file.filename %></p>
               <% if asset.image? %>
-                <%= image_tag asset.file.variant(resize_to_limit: [500, 500]), class: "review-media" %>
+                <%= image_tag asset.rendition(:thumbnail), class: "review-media" %>
               <% else %>
                 <%= video_tag url_for(asset.file), controls: true, class: "review-media" %>
               <% end %>
@@ -70,7 +70,7 @@
         <% @media_assets.each do |asset| %>
           <figure>
             <% if asset.image? %>
-              <%= image_tag asset.file.variant(resize_to_limit: [800, 800]) %>
+              <%= image_tag asset.rendition(:feed) %>
             <% else %>
               <%= video_tag url_for(asset.file), controls: true %>
             <% end %>
@@ -89,14 +89,14 @@
     <% end %>
 
     <% @albums.each do |album| %>
-      <article class="post-card">
+      <article class="post-card" id="<%= dom_id(album) %>">
         <h2><%= album.title %></h2>
         <%= simple_format(album.description) %>
         <section class="media-grid">
           <% album.media_assets.approved.with_attached_file.select { |asset| asset.accessible_to?(Current.user) }.each do |asset| %>
             <figure>
               <% if asset.image? %>
-                <%= image_tag asset.file.variant(resize_to_limit: [500, 500]) %>
+                <%= image_tag asset.rendition(:thumbnail) %>
               <% else %>
                 <%= video_tag url_for(asset.file), controls: true %>
               <% end %>

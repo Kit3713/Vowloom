@@ -25,6 +25,24 @@ class KioskDisplayTest < ActionDispatch::IntegrationTest
     assert_select ".kiosk-join", text: /Join the wedding community on your phone/
   end
 
+  test "token kiosk excludes featured media sourced from member-only posts" do
+    public_post = @site.posts.create!(user: @owner, space: :main, visibility: :everyone, body: "Public photo", published_at: Time.current)
+    private_post = @site.posts.create!(user: @owner, space: :main, visibility: :members_only, body: "Private photo", published_at: Time.current)
+    public_asset = public_post.media_assets.build(site: @site, user: @owner, status: :approved, featured: true, caption: "Public featured photo")
+    private_asset = private_post.media_assets.build(site: @site, user: @owner, status: :approved, featured: true, caption: "Private featured photo")
+    public_asset.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    private_asset.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    public_asset.save!
+    private_asset.save!
+    @display.update!(mode: :gallery)
+
+    get public_display_path(@display.access_token)
+
+    assert_response :success
+    assert_select "img[alt='Public featured photo']", count: 1
+    assert_select "img[alt='Private featured photo']", count: 0
+  end
+
   test "owner updates a display preset and refresh interval" do
     sign_in(@owner)
 

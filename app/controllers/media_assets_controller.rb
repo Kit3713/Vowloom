@@ -38,8 +38,7 @@ class MediaAssetsController < ApplicationController
 
     return redirect_to rails_blob_path(media_asset.file, disposition: "attachment") unless media_asset.image?
 
-    variant = media_asset.file.variant(resize_to_limit: [ 2_000, 2_000 ])
-    redirect_to rails_representation_path(variant, disposition: "attachment")
+    redirect_to rails_representation_path(media_asset.rendition(:web_download), disposition: "attachment")
   end
 
   private

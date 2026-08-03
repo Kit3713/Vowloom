@@ -2,6 +2,8 @@ class Event < ApplicationRecord
   belongs_to :site
   has_many :event_invitations, dependent: :destroy
   has_many :invitees, through: :event_invitations
+  has_many :groups, dependent: :nullify
+  has_many :group_resources, as: :resourceable, dependent: :destroy
 
   enum :visibility, { site_wide: 0, invitees_only: 1 }, default: :site_wide
 

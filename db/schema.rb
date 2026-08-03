@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -149,6 +149,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
     t.index ["group_id", "user_id"], name: "index_group_memberships_on_group_id_and_user_id", unique: true
     t.index ["group_id"], name: "index_group_memberships_on_group_id"
     t.index ["user_id"], name: "index_group_memberships_on_user_id"
+  end
+
+  create_table "group_resources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id", null: false
+    t.bigint "group_id", null: false
+    t.integer "position", default: 0, null: false
+    t.bigint "resourceable_id", null: false
+    t.string "resourceable_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_group_resources_on_created_by_id"
+    t.index ["group_id", "position", "created_at"], name: "index_group_resources_on_group_id_and_position_and_created_at"
+    t.index ["group_id", "resourceable_type", "resourceable_id"], name: "index_group_resources_on_group_and_resource", unique: true
+    t.index ["group_id"], name: "index_group_resources_on_group_id"
+    t.index ["resourceable_type", "resourceable_id"], name: "index_group_resources_on_resourceable"
   end
 
   create_table "groups", force: :cascade do |t|
@@ -293,6 +308,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
     t.index ["question_id"], name: "index_questionnaire_answers_on_question_id"
     t.index ["questionnaire_response_id", "question_id"], name: "index_questionnaire_answers_on_response_and_question", unique: true
     t.index ["questionnaire_response_id"], name: "index_questionnaire_answers_on_questionnaire_response_id"
+  end
+
+  create_table "questionnaire_audiences", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "household_id"
+    t.bigint "invitee_id"
+    t.bigint "questionnaire_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["household_id"], name: "index_questionnaire_audiences_on_household_id"
+    t.index ["invitee_id"], name: "index_questionnaire_audiences_on_invitee_id"
+    t.index ["questionnaire_id", "household_id"], name: "index_questionnaire_audiences_on_questionnaire_and_household", unique: true, where: "(household_id IS NOT NULL)"
+    t.index ["questionnaire_id", "invitee_id"], name: "index_questionnaire_audiences_on_questionnaire_and_invitee", unique: true, where: "(invitee_id IS NOT NULL)"
+    t.index ["questionnaire_id"], name: "index_questionnaire_audiences_on_questionnaire_id"
+    t.check_constraint "num_nonnulls(invitee_id, household_id) = 1", name: "questionnaire_audiences_one_target"
   end
 
   create_table "questionnaire_responses", force: :cascade do |t|
@@ -475,6 +504,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
   add_foreign_key "events", "sites"
   add_foreign_key "group_memberships", "groups"
   add_foreign_key "group_memberships", "users"
+  add_foreign_key "group_resources", "groups"
+  add_foreign_key "group_resources", "users", column: "created_by_id"
   add_foreign_key "groups", "events"
   add_foreign_key "groups", "sites"
   add_foreign_key "groups", "users", column: "created_by_id"
@@ -499,6 +530,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_029000) do
   add_foreign_key "posts", "users"
   add_foreign_key "questionnaire_answers", "questionnaire_responses"
   add_foreign_key "questionnaire_answers", "questions"
+  add_foreign_key "questionnaire_audiences", "households"
+  add_foreign_key "questionnaire_audiences", "invitees"
+  add_foreign_key "questionnaire_audiences", "questionnaires"
   add_foreign_key "questionnaire_responses", "households"
   add_foreign_key "questionnaire_responses", "invitees"
   add_foreign_key "questionnaire_responses", "questionnaires"

@@ -5,6 +5,8 @@ class Questionnaire < ApplicationRecord
   belongs_to :event, optional: true
   has_many :questions, -> { order(:position) }, dependent: :destroy
   has_many :responses, class_name: "QuestionnaireResponse", dependent: :destroy
+  has_many :group_resources, as: :resourceable, dependent: :destroy
+  has_many :audience_targets, class_name: "QuestionnaireAudience", dependent: :destroy, inverse_of: :questionnaire
 
   enum :status, { draft: 0, published: 1, closed: 2 }, default: :draft
   enum :response_scope, { individual: 0, household: 1 }, default: :individual
@@ -20,10 +22,11 @@ class Questionnaire < ApplicationRecord
 
   def available_to?(user)
     return false unless user
+    return true if user.owner? || user.admin?
     return false if group && !group.accessible_to?(user)
     return false if event && !event.visible_to?(user)
 
-    true
+    audience_includes?(user)
   end
 
   def manageable_by?(user)
@@ -36,17 +39,17 @@ class Questionnaire < ApplicationRecord
   def results_visible_to?(user)
     return true if user&.owner? || user&.admin? || user&.helper?
 
-    user.present? && (aggregate? || member_visible?)
+    user.present? && available_to?(user) && (aggregate? || member_visible?)
   end
 
   def individual_results_visible_to?(user)
     return true if user&.owner? || user&.admin? || user&.helper?
 
-    user.present? && member_visible?
+    user.present? && available_to?(user) && member_visible?
   end
 
   def kiosk_displayable?
-    published? && aggregate? && (group.blank? || group.site_wide?) && (event.blank? || event.site_wide?)
+    published? && aggregate? && audience_targets.none? && (group.blank? || group.site_wide?) && (event.blank? || event.site_wide?)
   end
 
   def structure_locked?
@@ -62,8 +65,44 @@ class Questionnaire < ApplicationRecord
   def response_visible_to?(response, user)
     return false unless response && user
     return true if staff_member?(user)
+    return false unless available_to?(user)
 
     response.user_id == user.id || (response.household_id.present? && response.household_id == user.invitee&.household_id)
+  end
+
+  def targeted_invitee_ids
+    audience_targets.filter_map(&:invitee_id)
+  end
+
+  def targeted_household_ids
+    audience_targets.filter_map(&:household_id)
+  end
+
+  def explicitly_targeted?
+    audience_targets.any?
+  end
+
+  def audience_includes?(user)
+    return true unless explicitly_targeted?
+    return false unless user&.invitee
+
+    targeted_invitee_ids.include?(user.invitee_id) || targeted_household_ids.include?(user.invitee.household_id)
+  end
+
+  def audience_includes_invitee?(invitee)
+    return false unless invitee&.site_id == site_id
+    return true unless explicitly_targeted?
+
+    targeted_invitee_ids.include?(invitee.id) || targeted_household_ids.include?(invitee.household_id)
+  end
+
+  def audience_summary
+    return "All members" unless explicitly_targeted?
+
+    entries = audience_targets.includes(:invitee, :household).map do |target|
+      target.invitee ? target.invitee.full_name : "#{target.household.name} household"
+    end
+    entries.to_sentence
   end
 
   def response_edit_policy_summary

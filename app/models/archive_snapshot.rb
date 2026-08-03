@@ -135,7 +135,7 @@ class ArchiveSnapshot < ApplicationRecord
   end
 
   def self.public_questionnaire?(questionnaire)
-    !questionnaire.draft? && questionnaire.group_id.nil? && (questionnaire.event.nil? || questionnaire.event.site_wide?) && questionnaire.results_visibility.in?(%w[aggregate member_visible])
+    !questionnaire.draft? && !questionnaire.explicitly_targeted? && questionnaire.group_id.nil? && (questionnaire.event.nil? || questionnaire.event.site_wide?) && questionnaire.results_visibility.in?(%w[aggregate member_visible])
   end
 
   def self.question_payload(question, include_private:)

@@ -60,6 +60,8 @@ Practice restoration on an isolated host before relying on it for a wedding arch
 
 The Owner can freeze the site and download immutable public-safe or complete JSON manifests plus matching standalone readable HTML archives. The public-safe export preserves public schedule/RSVP totals, approved public questionnaire aggregates, public registry availability, public posts, and media metadata; it omits identities and notes behind RSVPs, questionnaire answers, registry claims, and planning tasks. The complete Owner export preserves those operational records, private groups, and private conversations, but intentionally still omits passwords, sessions, recovery/contact details, and invitation codes. The HTML file is script-free and works as an offline reading copy, but neither export contains the original media bytes or replaces a database/media backup. Keep periodic database and media-volume backups for the life of the archive.
 
+Media originals are kept unchanged. Gallery, feed, and kiosk images use Vips-generated, metadata-stripped derivatives; only authorized staff can download an original. V1 intentionally serves accepted video uploads in their supplied browser-playable form rather than running an unmonitored ffmpeg/transcoding pipeline. Verify target browser compatibility with a short test upload before the event.
+
 ## Runtime checks
 
 The web service reports healthy only after Rails can answer `GET /up`; inspect it with `docker compose ps` or `podman compose ps`. Compose restarts the database and web services after an unexpected exit. Test this path and the restore rehearsal before the event, then monitor the same health endpoint from the reverse proxy or an external uptime monitor.

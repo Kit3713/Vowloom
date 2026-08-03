@@ -23,5 +23,9 @@ module Vowloom
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    # Vips is installed in the production image and gives Active Storage
+    # bounded, efficient image derivatives without a separate image service.
+    config.active_storage.variant_processor = :vips
   end
 end

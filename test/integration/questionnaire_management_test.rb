@@ -75,6 +75,51 @@ class QuestionnaireManagementTest < ActionDispatch::IntegrationTest
     assert_match "cannot be changed", flash[:alert]
   end
 
+  test "staff can select people and households before answers exist" do
+    household = @site.households.create!(name: "Family")
+    invitee = @site.invitees.create!(first_name: "Taylor", last_name: "Guest", household:)
+
+    patch questionnaire_path(@questionnaire), params: {
+      questionnaire: {
+        title: @questionnaire.title,
+        status: "published",
+        response_scope: "individual",
+        results_visibility: "staff_only",
+        group_id: "",
+        event_id: "",
+        targeted_invitee_ids: [ invitee.id.to_s ],
+        targeted_household_ids: [ household.id.to_s ]
+      }
+    }
+
+    assert_redirected_to questionnaire_path(@questionnaire)
+    assert_equal [ invitee.id ], @questionnaire.reload.targeted_invitee_ids
+    assert_equal [ household.id ], @questionnaire.targeted_household_ids
+  end
+
+  test "selected people and households cannot change after a response exists" do
+    household = @site.households.create!(name: "Family")
+    invitee = @site.invitees.create!(first_name: "Taylor", last_name: "Guest", household:)
+    @questionnaire.responses.create!(user: @member, submitted_at: Time.current)
+
+    patch questionnaire_path(@questionnaire), params: {
+      questionnaire: {
+        title: @questionnaire.title,
+        status: "published",
+        response_scope: "individual",
+        results_visibility: "staff_only",
+        group_id: "",
+        event_id: "",
+        targeted_invitee_ids: [ invitee.id.to_s ],
+        targeted_household_ids: []
+      }
+    }
+
+    assert_redirected_to questionnaire_path(@questionnaire)
+    assert_empty @questionnaire.reload.audience_targets
+    assert_match "cannot be changed", flash[:alert]
+  end
+
   private
 
   def sign_in(user)

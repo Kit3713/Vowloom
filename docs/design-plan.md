@@ -221,10 +221,10 @@ Original
 ├── thumbnail
 ├── feed rendition
 ├── full-screen rendition
-└── for video: poster and browser-playable web copy
+└── video: original browser-playback file in V1
 ```
 
-Displayed copies strip location metadata; the untouched original remains protected. Users can download web-sized media or, when authorized, the original. Album ZIP creation runs asynchronously.
+Displayed copies strip location metadata; the untouched original remains protected. Vowloom's built-in Vips presets are thumbnail (360px square), feed (1280px), full-screen/kiosk (2560×1920), and a 2000px JPEG web download. Users can download web-sized media or, when authorized, the original. Video uploads remain original browser-playback files in V1; creating posters or transcoded copies is deliberately deferred until an operator opts into a dependable media-processing service. Album ZIP creation runs asynchronously.
 
 ### Moderation
 

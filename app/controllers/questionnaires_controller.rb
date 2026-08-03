@@ -17,7 +17,7 @@ class QuestionnairesController < ApplicationController
     redirect_to questionnaires_path, alert: "That questionnaire is not available." and return unless (!@questionnaire.draft? && @questionnaire.available_to?(Current.user)) || @questionnaire.manageable_by?(Current.user)
     @response = response_for_current_user || @questionnaire.responses.build
     @response_editable = @questionnaire.response_editable?(@response)
-    @staff_entry_invitees = @site.invitees.order(:last_name, :first_name) if staff?
+    @staff_entry_invitees = response_invitees_for_staff if staff?
     @result_summaries = build_result_summaries if @questionnaire.results_visible_to?(Current.user)
   end
 
@@ -26,6 +26,8 @@ class QuestionnairesController < ApplicationController
     return redirect_to(questionnaires_path, alert: "Only staff can create questionnaires.") unless staff?
     template_key = params[:template]
     @questionnaire = @site.questionnaires.build(questionnaire_params.merge(created_by: Current.user))
+    return redirect_to(questionnaires_path, alert: "Choose people and households from this wedding site.") unless audience_targets_valid?
+    assign_audience_targets(@questionnaire)
     @questionnaire.title = QuestionnaireTemplates.title_for(template_key) if @questionnaire.title.blank? && QuestionnaireTemplates.keys.include?(template_key)
     @questionnaire.status = :published if params[:publish_now] == "1"
     return redirect_to(questionnaires_path, alert: "You cannot target that private group or event.") unless targets_accessible?(@questionnaire)
@@ -47,18 +49,20 @@ class QuestionnairesController < ApplicationController
     return redirect_to(@questionnaire, alert: "You cannot edit that questionnaire.") unless @questionnaire.manageable_by?(Current.user)
 
     attributes = questionnaire_update_params
-    if @questionnaire.structure_locked? && audience_changed?(attributes)
+    if @questionnaire.structure_locked? && (audience_changed?(attributes) || audience_targets_changed?)
       return redirect_to(@questionnaire, alert: "Responses already exist, so the audience and response scope cannot be changed.")
     end
 
     @questionnaire.assign_attributes(attributes)
+    return redirect_to(@questionnaire, alert: "Choose people and households from this wedding site.") unless audience_targets_valid?
     return redirect_to(@questionnaire, alert: "You cannot target that private group or event.") unless targets_accessible?(@questionnaire)
 
-    if @questionnaire.save
+    saved = save_with_audience_targets
+    if saved
       redirect_to @questionnaire, notice: "Questionnaire settings saved."
     else
       @response = response_for_current_user || @questionnaire.responses.build
-      @staff_entry_invitees = @site.invitees.order(:last_name, :first_name) if staff?
+      @staff_entry_invitees = response_invitees_for_staff if staff?
       @result_summaries = build_result_summaries if @questionnaire.results_visible_to?(Current.user)
       render :show, status: :unprocessable_content
     end
@@ -88,6 +92,13 @@ class QuestionnairesController < ApplicationController
     @questionnaire.responses.find_by(user: Current.user)
   end
 
+  def response_invitees_for_staff
+    invitees = @site.invitees.order(:last_name, :first_name)
+    return invitees unless @questionnaire.explicitly_targeted?
+
+    invitees.select { |invitee| @questionnaire.audience_includes_invitee?(invitee) }
+  end
+
   def targets_accessible?(questionnaire)
     return true unless Current.user.helper?
 
@@ -99,6 +110,58 @@ class QuestionnairesController < ApplicationController
     %w[response_scope group_id event_id].any? do |attribute|
       attributes.key?(attribute) && @questionnaire.public_send(attribute).to_s != attributes[attribute].to_s
     end
+  end
+
+  def audience_targets_changed?
+    return false unless audience_targets_submitted?
+
+    target_ids = audience_target_ids
+    @questionnaire.targeted_invitee_ids.sort != target_ids[:invitee_ids] ||
+      @questionnaire.targeted_household_ids.sort != target_ids[:household_ids]
+  end
+
+  def audience_targets_submitted?
+    audience = params[:questionnaire]
+    audience.present? && (audience.key?(:targeted_invitee_ids) || audience.key?(:targeted_household_ids))
+  end
+
+  def audience_target_ids
+    audience = params.fetch(:questionnaire, {})
+    {
+      invitee_ids: Array(audience[:targeted_invitee_ids]).reject(&:blank?).map(&:to_i).uniq.sort,
+      household_ids: Array(audience[:targeted_household_ids]).reject(&:blank?).map(&:to_i).uniq.sort
+    }
+  end
+
+  def assign_audience_targets(questionnaire)
+    return true unless audience_targets_submitted?
+
+    target_ids = audience_target_ids
+    questionnaire.audience_targets = [
+      *@site.invitees.where(id: target_ids[:invitee_ids]).map { |invitee| QuestionnaireAudience.new(invitee:) },
+      *@site.households.where(id: target_ids[:household_ids]).map { |household| QuestionnaireAudience.new(household:) }
+    ]
+    true
+  end
+
+  def audience_targets_valid?
+    return true unless audience_targets_submitted?
+
+    target_ids = audience_target_ids
+    @site.invitees.where(id: target_ids[:invitee_ids]).count == target_ids[:invitee_ids].size &&
+      @site.households.where(id: target_ids[:household_ids]).count == target_ids[:household_ids].size
+  end
+
+  def save_with_audience_targets
+    return @questionnaire.save unless audience_targets_submitted?
+
+    saved = false
+    Questionnaire.transaction do
+      assign_audience_targets(@questionnaire)
+      saved = @questionnaire.save
+      raise ActiveRecord::Rollback unless saved
+    end
+    saved
   end
 
   def build_result_summaries

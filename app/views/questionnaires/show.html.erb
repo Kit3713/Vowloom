@@ -9,6 +9,7 @@
     <h1><%= @questionnaire.title %></h1>
     <%= simple_format(@questionnaire.introduction) %>
     <p class="muted"><strong>Response changes:</strong> <%= @questionnaire.response_edit_policy_summary %><br><strong>Results:</strong> <%= @questionnaire.results_policy_summary %></p>
+    <p class="muted"><strong>Audience:</strong> <%= @questionnaire.audience_summary %></p>
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @questionnaire.site.content_live? %>
       <section class="composer">
@@ -34,6 +35,11 @@
           <%= f.select :group_id, @questionnaire.site.groups.select { |group| group.accessible_to?(Current.user) }.map { |group| [group.name, group.id] }, { include_blank: "All members" }, disabled: @questionnaire.structure_locked? %>
           <%= f.label :event_id, "Event invitee audience (optional)" %>
           <%= f.select :event_id, @questionnaire.site.events.select { |event| event.visible_to?(Current.user) }.map { |event| [event.title, event.id] }, { include_blank: "All members" }, disabled: @questionnaire.structure_locked? %>
+          <%= f.label :targeted_invitee_ids, "Specific people (optional)" %>
+          <%= f.select :targeted_invitee_ids, @questionnaire.site.invitees.order(:last_name, :first_name).map { |invitee| [invitee.full_name, invitee.id] }, {}, multiple: true, size: 6, disabled: @questionnaire.structure_locked? %>
+          <%= f.label :targeted_household_ids, "Specific households (optional)" %>
+          <%= f.select :targeted_household_ids, @questionnaire.site.households.order(:name).map { |household| [household.name, household.id] }, {}, multiple: true, size: 4, disabled: @questionnaire.structure_locked? %>
+          <p class="muted">Leave both lists empty for every member. Selected people and households are combined with any group or event audience.</p>
           <% if @questionnaire.structure_locked? %><p class="muted">Audience and response scope are locked once someone has responded.</p><% end %>
           <%= f.submit "Save settings", class: "button button-secondary" %>
         <% end %>
