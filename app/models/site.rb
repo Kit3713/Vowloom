@@ -25,6 +25,8 @@ class Site < ApplicationRecord
   validates :name, presence: true, length: { maximum: 120 }
   validates :accent_color, format: { with: /\A#[0-9a-fA-F]{6}\z/ }
   validates :media_quota_bytes, numericality: { only_integer: true, greater_than: 0 }
+  validates :time_zone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }
+  validate :banner_image_is_suitable
 
   def media_bytes_used(excluding: nil)
     assets = media_assets
@@ -72,5 +74,14 @@ class Site < ApplicationRecord
     end
   rescue ActiveRecord::RecordNotFound
     raise OwnershipTransferError, "The selected user belongs to a different site."
+  end
+
+  private
+
+  def banner_image_is_suitable
+    return unless banner_image.attached?
+    return if banner_image.content_type.in?(%w[image/png image/jpeg image/webp image/gif]) && banner_image.byte_size <= 20.megabytes
+
+    errors.add(:banner_image, "must be a PNG, JPEG, WebP, or GIF no larger than 20 MB")
   end
 end

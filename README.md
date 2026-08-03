@@ -21,6 +21,11 @@ For a non-local deployment, copy `.env.example` to `.env`, set a strong `POSTGRE
 
 The `web` container exposes a health endpoint at `/up` and only accepts the hostname in `VOWLOOM_HOST` (plus local loopback checks). Set that value to the exact public hostname before deploying.
 
+On the first successful start, open the site in a browser. Vowloom locks every
+application page to a guided initializer until the wedding settings, Owner
+account, and selected starter content are created successfully. Initialization
+is an all-or-nothing database transaction and can only be completed once.
+
 Email is intentionally disabled by default. Set `VOWLOOM_SMTP_ADDRESS` and the related documented `VOWLOOM_SMTP_*` variables in `.env` only when you want password recovery and opted-in important-announcement emails delivered. Development and test never require an SMTP server.
 
 ## Local Rails development

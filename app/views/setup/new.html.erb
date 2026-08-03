@@ -1,22 +1,197 @@
-<main class="form-page">
-  <section class="form-card">
-    <p class="eyebrow">First-time setup</p><h1>Create your wedding community</h1>
-    <%= form_with url: setup_path, class: "stack" do |form| %>
-      <fieldset><legend>Wedding</legend><%= form.fields_for :site, @site do |f| %>
-        <%= f.label :name, "Wedding name" %><%= f.text_field :name, required: true, autofocus: true, placeholder: "Alex & Jordan" %>
-        <%= f.label :wedding_date %><%= f.date_field :wedding_date %>
-        <%= f.label :landing_message, "Welcome message" %><%= f.text_area :landing_message, rows: 3 %>
-        <%= f.label :accent_color, "Accent color" %><%= f.color_field :accent_color %>
-        <%= f.label :access_policy, "Site access" %><%= f.select :access_policy, [["Public — visitors may read", "public_access"], ["Private — sign-in required", "private_access"]] %>
-      <% end %></fieldset>
-      <fieldset><legend>Owner account</legend><%= form.fields_for :owner, @owner do |f| %>
-        <%= f.label :display_name, "Your name" %><%= f.text_field :display_name, required: true %>
-        <%= f.label :login_identifier, "Sign-in name" %><%= f.text_field :login_identifier, required: true, autocomplete: "username" %>
-        <%= f.label :recovery_email, "Recovery email (optional)" %><%= f.email_field :recovery_email, autocomplete: "email" %>
-        <%= f.label :password %><%= f.password_field :password, required: true, autocomplete: "new-password", minlength: 12 %>
-        <%= f.label :password_confirmation, "Confirm password" %><%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 12 %>
-      <% end %></fieldset>
-      <%= form.submit "Create wedding community", class: "button" %>
-    <% end %>
+<% content_for :title, "Initialize Vowloom" %>
+
+<main class="setup-page" style="--accent: <%= @site.accent_color.presence || '#8f4f6a' %>">
+  <header class="setup-hero">
+    <p class="eyebrow">First-run initialization</p>
+    <h1>Make Vowloom yours</h1>
+    <p>Complete this guided launch once. Until it succeeds, every application page stays locked to setup.</p>
+  </header>
+
+  <section class="setup-readiness" aria-labelledby="readiness-heading">
+    <div>
+      <p class="eyebrow">Server readiness</p>
+      <h2 id="readiness-heading">The foundation is connected</h2>
+    </div>
+    <dl>
+      <% @readiness.each do |label, value| %>
+        <div><dt><%= label %></dt><dd><%= value %></dd></div>
+      <% end %>
+    </dl>
   </section>
+
+  <% errors = [@site, @owner, @event].flat_map { |record| record.errors.full_messages }.uniq %>
+  <% if errors.any? %>
+    <section class="setup-errors" role="alert" aria-labelledby="setup-errors-heading">
+      <h2 id="setup-errors-heading">Setup needs a few corrections</h2>
+      <ul><% errors.each do |error| %><li><%= error %></li><% end %></ul>
+    </section>
+  <% end %>
+
+  <%= form_with url: setup_path, class: "setup-form", multipart: true do |form| %>
+    <section class="setup-step" aria-labelledby="wedding-step-heading">
+      <div class="setup-step-number" aria-hidden="true">1</div>
+      <div class="setup-step-content">
+        <p class="eyebrow">Wedding identity</p>
+        <h2 id="wedding-step-heading">Create the front door</h2>
+        <p class="setup-help">These details become the familiar cover page your guests see first.</p>
+
+        <%= form.fields_for :site, @site do |f| %>
+          <div class="setup-grid">
+            <div class="field field-wide">
+              <%= f.label :name, "Wedding name" %>
+              <%= f.text_field :name, required: true, autofocus: true, maxlength: 120, placeholder: "Alex & Jordan" %>
+            </div>
+            <div class="field">
+              <%= f.label :wedding_date %>
+              <%= f.date_field :wedding_date %>
+            </div>
+            <div class="field">
+              <%= f.label :time_zone, "Wedding time zone" %>
+              <%= f.time_zone_select :time_zone, nil, {}, required: true %>
+            </div>
+            <div class="field field-wide">
+              <%= f.label :landing_message, "Welcome message" %>
+              <%= f.text_area :landing_message, rows: 4, maxlength: 2_000, placeholder: "We cannot wait to celebrate with you…" %>
+            </div>
+            <div class="field">
+              <%= f.label :banner_image, "Cover photo (optional)" %>
+              <%= f.file_field :banner_image, accept: "image/png,image/jpeg,image/webp,image/gif" %>
+              <small>PNG, JPEG, WebP, or GIF up to 20 MB.</small>
+            </div>
+            <div class="field">
+              <%= f.label :accent_color, "Accent color" %>
+              <div class="color-field"><%= f.color_field :accent_color %><span>Used for buttons and highlights.</span></div>
+            </div>
+          </div>
+
+          <fieldset class="choice-cards">
+            <legend>Who can open the community?</legend>
+            <label class="choice-card">
+              <%= f.radio_button :access_policy, "private_access", checked: @site.private_access? %>
+              <span><strong>Private</strong><small>Sign-in is required before any wedding content appears.</small></span>
+            </label>
+            <label class="choice-card">
+              <%= f.radio_button :access_policy, "public_access", checked: @site.public_access? %>
+              <span><strong>Public cover</strong><small>Visitors may browse public content, but only invited members can interact.</small></span>
+            </label>
+          </fieldset>
+
+          <div class="field setup-quota">
+            <%= f.label :media_quota_gigabytes, "Media storage limit" %>
+            <span><%= f.number_field :media_quota_gigabytes, min: 1, max: 10_000, step: 1, required: true %> GB</span>
+            <small>Prevents guest uploads from silently filling the server. You can change it later.</small>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="setup-step" aria-labelledby="owner-step-heading">
+      <div class="setup-step-number" aria-hidden="true">2</div>
+      <div class="setup-step-content">
+        <p class="eyebrow">Owner account</p>
+        <h2 id="owner-step-heading">Create the first administrator</h2>
+        <p class="setup-help">This is the only account created without an invitation. The owner controls privacy, staff, archives, and future ownership transfer.</p>
+
+        <%= form.fields_for :owner, @owner do |f| %>
+          <div class="setup-grid">
+            <div class="field">
+              <%= f.label :display_name, "Your name" %>
+              <%= f.text_field :display_name, required: true, maxlength: 80, autocomplete: "name" %>
+            </div>
+            <div class="field">
+              <%= f.label :login_identifier, "Sign-in name" %>
+              <%= f.text_field :login_identifier, required: true, autocomplete: "username", autocapitalize: "none", spellcheck: false %>
+            </div>
+            <div class="field field-wide">
+              <%= f.label :recovery_email, "Recovery email (recommended)" %>
+              <%= f.email_field :recovery_email, autocomplete: "email", placeholder: "you@example.com" %>
+              <small>Used for password recovery and never shown on your public profile.</small>
+            </div>
+            <div class="field">
+              <%= f.label :password %>
+              <%= f.password_field :password, required: true, autocomplete: "new-password", minlength: 12, maxlength: 72 %>
+              <small>Use at least 12 characters.</small>
+            </div>
+            <div class="field">
+              <%= f.label :password_confirmation, "Confirm password" %>
+              <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 12, maxlength: 72 %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="setup-step" aria-labelledby="event-step-heading">
+      <div class="setup-step-number" aria-hidden="true">3</div>
+      <div class="setup-step-content">
+        <p class="eyebrow">Starting schedule</p>
+        <h2 id="event-step-heading">Add the first calendar event</h2>
+        <label class="setup-toggle">
+          <%= check_box_tag "starter[create_event]", "1", @create_event %>
+          <span><strong>Create this event during initialization</strong><small>Uncheck it if the schedule is not ready yet.</small></span>
+        </label>
+
+        <%= form.fields_for :event, @event do |f| %>
+          <div class="setup-grid">
+            <div class="field field-wide">
+              <%= f.label :title, "Event title" %>
+              <%= f.text_field :title, maxlength: 140, placeholder: "Wedding day" %>
+            </div>
+            <div class="field">
+              <%= f.label :starts_at, "Starts" %>
+              <%= f.datetime_local_field :starts_at %>
+            </div>
+            <div class="field">
+              <%= f.label :ends_at, "Ends" %>
+              <%= f.datetime_local_field :ends_at %>
+            </div>
+            <div class="field">
+              <%= f.label :location_name, "Location name" %>
+              <%= f.text_field :location_name, maxlength: 160, placeholder: "Celebration Hall" %>
+            </div>
+            <div class="field">
+              <%= f.label :location_address, "Address" %>
+              <%= f.text_field :location_address, maxlength: 500 %>
+            </div>
+            <div class="field field-wide">
+              <%= f.label :map_url, "Map link (optional)" %>
+              <%= f.url_field :map_url, placeholder: "https://…" %>
+            </div>
+            <div class="field field-wide">
+              <%= f.label :description, "Guest instructions (optional)" %>
+              <%= f.text_area :description, rows: 3, maxlength: 5_000 %>
+            </div>
+          </div>
+          <%= f.hidden_field :visibility, value: "site_wide" %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="setup-step" aria-labelledby="starter-step-heading">
+      <div class="setup-step-number" aria-hidden="true">4</div>
+      <div class="setup-step-content">
+        <p class="eyebrow">Useful starters</p>
+        <h2 id="starter-step-heading">Begin with a welcoming space</h2>
+        <div class="starter-options">
+          <label class="setup-toggle">
+            <%= check_box_tag "starter[create_welcome_post]", "1", @create_welcome_post %>
+            <span><strong>Pinned welcome post</strong><small>Uses your welcome message and can be edited later.</small></span>
+          </label>
+          <label class="setup-toggle">
+            <%= check_box_tag "starter[create_gallery_album]", "1", @create_gallery_album %>
+            <span><strong>Wedding memories album</strong><small>Creates an empty featured Gallery destination for curated photos and videos.</small></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="setup-launch">
+      <div>
+        <p class="eyebrow">Ready to launch</p>
+        <h2>Initialize the wedding community</h2>
+        <p>Setup is transactional: either every selected item is created successfully or nothing is kept. You will be signed in as Owner when it finishes.</p>
+      </div>
+      <%= form.submit "Initialize Vowloom", class: "button setup-submit", data: { disable_with: "Initializing…" } %>
+    </section>
+  <% end %>
 </main>
