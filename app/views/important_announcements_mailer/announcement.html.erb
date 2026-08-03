@@ -1,0 +1,9 @@
+<h1><%= @post.title.presence || "Important wedding announcement" %></h1>
+
+<p>Hello <%= @recipient.display_name %>,</p>
+
+<%= simple_format(@post.body) %>
+
+<p><%= link_to "Open #{@site.name}", feed_url("main") %></p>
+
+<p>You received this because your invited member account opted in to important wedding announcements. You can change that preference from your profile.</p>

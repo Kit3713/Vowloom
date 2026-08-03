@@ -1,4 +1,6 @@
 class Post < ApplicationRecord
+  attr_accessor :send_important_announcement_email
+
   belongs_to :site
   belongs_to :user
   belongs_to :group, optional: true
@@ -6,6 +8,7 @@ class Post < ApplicationRecord
   belongs_to :postable, polymorphic: true, optional: true
   has_many :comments, dependent: :destroy
   has_many :media_assets, dependent: :nullify
+  has_many :announcement_deliveries, dependent: :destroy
 
   enum :space, { main: 0, general: 1, group_space: 2, couple_inbox: 3 }, default: :main
   enum :visibility, { everyone: 0, members_only: 1 }, default: :everyone
@@ -35,6 +38,35 @@ class Post < ApplicationRecord
     return viewer.owner? || viewer.admin? || viewer == user if conversation? && group_space? && group.information?
 
     true
+  end
+
+  def email_announcement_deliverable?
+    main? && important_announcement? && announcement_email_queued_at.present? && published?
+  end
+
+  # Recipients are selected once, when an Owner or Admin publishes an
+  # announcement. Each delivery row prevents a later job retry or a changed
+  # guest list from silently adding more people to the notification.
+  def queue_important_announcement_emails!(actor:)
+    raise ArgumentError, "Only Main posts can be emailed" unless main?
+    raise ArgumentError, "Only Owners and Admins can send announcement emails" unless actor.owner? || actor.admin?
+    raise ArgumentError, "The actor must belong to this wedding site" unless actor.site_id == site_id
+
+    with_lock do
+      return [] if announcement_email_queued_at?
+
+      update!(important_announcement: true, announcement_email_queued_at: Time.current)
+      delivery_ids = site.users.important_announcement_recipients.find_each.filter_map do |recipient|
+        announcement_deliveries.create!(recipient:).id
+      end
+      site.audit_events.create!(
+        actor:,
+        action: "announcement.email_delivery_queued",
+        auditable: self,
+        metadata: { recipient_count: delivery_ids.length }
+      )
+      delivery_ids
+    end
   end
 
   private

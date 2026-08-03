@@ -62,7 +62,7 @@
 
     <section>
       <h2>Media record</h2>
-      <% if @payload.fetch(:media).any? %><ul><% @payload.fetch(:media).each do |media| %><li><strong><%= media.fetch(:filename) %></strong> · <%= number_to_human_size(media.fetch(:byte_size)) %> · SHA-style storage checksum <code><%= media.fetch(:checksum) %></code><% if media[:caption].present? %> — <%= media[:caption] %><% end %></li><% end %></ul><% else %><p>No approved media was included in this export.</p><% end %>
+      <% if @payload.fetch(:media).any? %><ul><% @payload.fetch(:media).each do |media| %><% original = media.fetch(:original) %><li><strong><%= original.fetch(:filename) %></strong> · <%= number_to_human_size(original.fetch(:byte_size)) %> · SHA-style storage checksum <code><%= original.fetch(:checksum) %></code><% if media[:caption].present? %> — <%= media[:caption] %><% end %></li><% end %></ul><% else %><p>No approved media was included in this export.</p><% end %>
     </section>
   </body>
 </html>

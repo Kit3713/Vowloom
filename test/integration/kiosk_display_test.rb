@@ -43,6 +43,19 @@ class KioskDisplayTest < ActionDispatch::IntegrationTest
     assert_select "img[alt='Private featured photo']", count: 0
   end
 
+  test "token kiosk excludes featured media when its public source post is hidden" do
+    post = @site.posts.create!(user: @owner, space: :main, visibility: :everyone, body: "Removed photo", published_at: Time.current, hidden_at: Time.current)
+    asset = post.media_assets.build(site: @site, user: @owner, status: :approved, featured: true, caption: "Hidden featured photo")
+    asset.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    asset.save!
+    @display.update!(mode: :gallery)
+
+    get public_display_path(@display.access_token)
+
+    assert_response :success
+    assert_select "img[alt='Hidden featured photo']", count: 0
+  end
+
   test "owner updates a display preset and refresh interval" do
     sign_in(@owner)
 

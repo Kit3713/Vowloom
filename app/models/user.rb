@@ -8,6 +8,10 @@ class User < ApplicationRecord
 
   enum :role, { owner: 0, admin: 1, helper: 2, member: 3 }, default: :member
 
+  scope :important_announcement_recipients, -> {
+    member.where.not(invitee_id: nil).where.not(recovery_email: [ nil, "" ]).where(important_announcement_emails: true)
+  }
+
   belongs_to :site
   belongs_to :invitee, optional: true
   has_many :posts, dependent: :restrict_with_exception
@@ -19,6 +23,11 @@ class User < ApplicationRecord
   validates :display_name, presence: true, length: { maximum: 80 }
   validate :profile_photo_is_an_image
   validate :only_owner_for_site, if: :owner?
+  validate :important_announcement_email_requires_recovery_email, if: :important_announcement_emails?
+
+  def important_announcement_email_eligible?
+    member? && invitee_id.present? && recovery_email.present? && important_announcement_emails?
+  end
 
   private
 
@@ -34,5 +43,11 @@ class User < ApplicationRecord
     return unless self.class.where(site_id:, role: :owner).where.not(id:).exists?
 
     errors.add(:role, "is already assigned to another user for this site")
+  end
+
+  def important_announcement_email_requires_recovery_email
+    return if recovery_email.present?
+
+    errors.add(:recovery_email, "is required to receive important wedding announcements")
   end
 end

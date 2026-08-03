@@ -9,5 +9,8 @@ class FeedsController < ApplicationController
     @space = params[:space]
     @posts = visible_posts_for(@space)
     @post = Post.new(space: @space, visibility: @space == "general" ? :members_only : :everyone)
+    @important_announcement_email_available = !Rails.env.production? || (
+      Rails.application.config.action_mailer.delivery_method == :smtp && Rails.application.config.action_mailer.perform_deliveries
+    )
   end
 end

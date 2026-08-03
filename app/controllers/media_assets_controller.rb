@@ -44,7 +44,7 @@ class MediaAssetsController < ApplicationController
   private
 
   def staff?
-    Current.user.owner? || Current.user.admin? || Current.user.helper?
+    authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?)
   end
 
   def media_params

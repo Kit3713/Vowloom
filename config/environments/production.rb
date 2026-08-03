@@ -53,9 +53,24 @@ Rails.application.configure do
   # Replace the default in-process and non-durable queuing backend for Active Job.
   # config.active_job.queue_adapter = :resque
 
-  # Ignore bad email addresses and do not raise email delivery errors.
-  # Set this to true and configure the email server for immediate delivery to raise delivery errors.
-  # config.action_mailer.raise_delivery_errors = false
+  # Email is opt-in and disabled by default. Providing an SMTP address enables
+  # delivery for account recovery and important announcements. This prevents a
+  # fresh self-hosted install from attempting an unexpected external connection.
+  smtp_address = ENV["VOWLOOM_SMTP_ADDRESS"].presence
+  smtp_enabled = smtp_address.present?
+  config.action_mailer.delivery_method = smtp_enabled ? :smtp : :test
+  config.action_mailer.perform_deliveries = smtp_enabled
+  config.action_mailer.raise_delivery_errors = smtp_enabled
+  if smtp_enabled
+    config.action_mailer.smtp_settings = {
+      address: smtp_address,
+      port: ENV.fetch("VOWLOOM_SMTP_PORT", 587).to_i,
+      user_name: ENV["VOWLOOM_SMTP_USERNAME"],
+      password: ENV["VOWLOOM_SMTP_PASSWORD"],
+      authentication: ENV.fetch("VOWLOOM_SMTP_AUTHENTICATION", "plain").to_sym,
+      enable_starttls_auto: ENV.fetch("VOWLOOM_SMTP_STARTTLS", "true") == "true"
+    }
+  end
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = {
@@ -74,15 +89,6 @@ Rails.application.configure do
   config.action_cable.allowed_request_origins = allowed_hosts.product(allowed_protocols).map do |host, protocol|
     "#{protocol}://#{host}"
   end
-
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).

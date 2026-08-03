@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_03_034000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,6 +42,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "album_exports", force: :cascade do |t|
+    t.bigint "album_id", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.datetime "expires_at", null: false
+    t.boolean "include_originals", default: false, null: false
+    t.jsonb "media_asset_ids", default: [], null: false
+    t.integer "media_count", default: 0, null: false
+    t.bigint "requested_by_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["album_id", "status", "created_at"], name: "index_album_exports_on_album_id_and_status_and_created_at"
+    t.index ["album_id"], name: "index_album_exports_on_album_id"
+    t.index ["expires_at"], name: "index_album_exports_on_expires_at"
+    t.index ["requested_by_id"], name: "index_album_exports_on_requested_by_id"
+  end
+
   create_table "album_items", force: :cascade do |t|
     t.bigint "album_id", null: false
     t.datetime "created_at", null: false
@@ -66,6 +84,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
     t.index ["created_by_id"], name: "index_albums_on_created_by_id"
     t.index ["event_id"], name: "index_albums_on_event_id"
     t.index ["site_id"], name: "index_albums_on_site_id"
+  end
+
+  create_table "announcement_deliveries", force: :cascade do |t|
+    t.datetime "attempted_at"
+    t.datetime "created_at", null: false
+    t.datetime "delivered_at"
+    t.datetime "failed_at"
+    t.string "failure_reason"
+    t.bigint "post_id", null: false
+    t.bigint "recipient_id", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["post_id", "recipient_id"], name: "index_announcement_deliveries_on_post_id_and_recipient_id", unique: true
+    t.index ["post_id"], name: "index_announcement_deliveries_on_post_id"
+    t.index ["recipient_id"], name: "index_announcement_deliveries_on_recipient_id"
+    t.index ["status", "created_at"], name: "index_announcement_deliveries_on_status_and_created_at"
   end
 
   create_table "archive_snapshots", force: :cascade do |t|
@@ -272,6 +306,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
   end
 
   create_table "posts", force: :cascade do |t|
+    t.datetime "announcement_email_queued_at"
     t.text "body", null: false
     t.boolean "comments_enabled", default: true, null: false
     t.boolean "conversation", default: false, null: false
@@ -279,6 +314,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
     t.bigint "event_id"
     t.bigint "group_id"
     t.datetime "hidden_at"
+    t.boolean "important_announcement", default: false, null: false
     t.boolean "pinned", default: false, null: false
     t.bigint "postable_id"
     t.string "postable_type"
@@ -472,6 +508,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "display_name", default: "", null: false
+    t.boolean "important_announcement_emails", default: false, null: false
     t.bigint "invitee_id"
     t.string "login_identifier", null: false
     t.string "password_digest", null: false
@@ -488,11 +525,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_032000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "album_exports", "albums"
+  add_foreign_key "album_exports", "users", column: "requested_by_id"
   add_foreign_key "album_items", "albums"
   add_foreign_key "album_items", "media_assets"
   add_foreign_key "albums", "events"
   add_foreign_key "albums", "sites"
   add_foreign_key "albums", "users", column: "created_by_id"
+  add_foreign_key "announcement_deliveries", "posts"
+  add_foreign_key "announcement_deliveries", "users", column: "recipient_id"
   add_foreign_key "archive_snapshots", "sites"
   add_foreign_key "archive_snapshots", "users", column: "created_by_id"
   add_foreign_key "audit_events", "sites"

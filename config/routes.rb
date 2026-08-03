@@ -58,7 +58,11 @@ Rails.application.routes.draw do
     resource :chat, only: %i[show create], controller: "group_chats"
   end
   get "gallery", to: "gallery#index"
-  resources :albums, only: :create
+  resources :albums, only: :create do
+    resources :album_exports, only: :create do
+      get :download, on: :member
+    end
+  end
   resources :media_assets, only: %i[create update] do
     get :download, on: :member
   end

@@ -92,6 +92,26 @@
       <article class="post-card" id="<%= dom_id(album) %>">
         <h2><%= album.title %></h2>
         <%= simple_format(album.description) %>
+        <% if authenticated? && album.accessible_to?(Current.user) %>
+          <div class="actions">
+            <%= button_to "Prepare album download", album_album_exports_path(album), class: "button button-secondary" %>
+            <% if Current.user.owner? || Current.user.admin? || Current.user.helper? %>
+              <%= button_to "Prepare original-file ZIP", album_album_exports_path(album, include_originals: 1), class: "text-button", form: { data: { turbo_confirm: "This can create a large temporary download containing original files." } } %>
+            <% end %>
+          </div>
+          <% album.album_exports.where(requested_by: Current.user).order(created_at: :desc).limit(3).each do |export| %>
+            <p class="muted">
+              <% if export.ready? && !export.expired? %>
+                <%= link_to "Download #{export.include_originals? ? 'original-file' : 'web-sized'} ZIP (#{export.media_count} files)", download_album_album_export_path(album, export) %>
+                · available until <%= l(export.expires_at, format: :short) %>
+              <% elsif export.failed? %>
+                <%= export.error_message %>
+              <% else %>
+                Preparing <%= export.include_originals? ? "original-file" : "web-sized" %> ZIP…
+              <% end %>
+            </p>
+          <% end %>
+        <% end %>
         <section class="media-grid">
           <% album.media_assets.approved.with_attached_file.select { |asset| asset.accessible_to?(Current.user) }.each do |asset| %>
             <figure>

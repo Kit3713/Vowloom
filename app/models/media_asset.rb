@@ -78,8 +78,10 @@ class MediaAsset < ApplicationRecord
 
   # Media inherits visibility from the post where it was originally shared.
   # Curating it into the Gallery never makes private group or member-only
-  # content public.
+  # content public. A hidden source post also hides every attached asset; its
+  # curation flags must not turn a moderated post into a separate public copy.
   def accessible_to?(viewer)
+    return false if post && !post.published?
     return true if publicly_accessible?
     return false unless viewer
 
@@ -87,6 +89,7 @@ class MediaAsset < ApplicationRecord
   end
 
   def publicly_accessible?
+    return false if post && !post.published?
     return true unless post
 
     post.everyone? && (!post.group_space? || post.group.site_wide?)

@@ -1,0 +1,9 @@
+<%= @post.title.presence || "Important wedding announcement" %>
+
+Hello <%= @recipient.display_name %>,
+
+<%= @post.body %>
+
+Open <%= @site.name %>: <%= feed_url("main") %>
+
+You received this because your invited member account opted in to important wedding announcements. You can change that preference from your profile.

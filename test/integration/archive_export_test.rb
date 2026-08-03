@@ -31,6 +31,21 @@ class ArchiveExportTest < ActionDispatch::IntegrationTest
     assert_redirected_to community_path
   end
 
+  test "readable public archive renders stored original media metadata" do
+    post = @site.posts.create!(user: @owner, space: :main, visibility: :everyone, body: "A photo", published_at: Time.current)
+    media = post.media_assets.build(site: @site, user: @owner, status: :approved, caption: "First dance")
+    media.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    media.save!
+    snapshot = ArchiveSnapshot.capture!(site: @site, actor: @owner)
+    sign_in(@owner)
+
+    get readable_export_archive_snapshot_path(snapshot)
+
+    assert_response :success
+    assert_includes response.body, "photo.jpg"
+    assert_includes response.body, "First dance"
+  end
+
   private
 
   def create_user(name, role)

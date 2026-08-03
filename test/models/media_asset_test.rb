@@ -66,6 +66,24 @@ class MediaAssetTest < ActiveSupport::TestCase
     assert_not private_asset.accessible_to?(nil)
   end
 
+  test "hiding a source post hides its approved attachment everywhere" do
+    site = Site.create!(name: "Vowloom test", accent_color: "#8f4f6a")
+    user = site.users.create!(display_name: "Member", login_identifier: "member-#{SecureRandom.hex(4)}", password: "password123", password_confirmation: "password123")
+    post = site.posts.create!(user:, space: :general, visibility: :everyone, body: "Public", published_at: Time.current)
+    asset = post.media_assets.build(site:, user:, status: :approved, featured: true)
+    attach_photo(asset)
+    asset.save!
+
+    assert_predicate asset, :publicly_accessible?
+    assert asset.accessible_to?(user)
+
+    post.update!(hidden_at: Time.current)
+
+    assert_not_predicate asset, :publicly_accessible?
+    assert_not asset.accessible_to?(nil)
+    assert_not asset.accessible_to?(user)
+  end
+
   private
 
   def attach_photo(asset)

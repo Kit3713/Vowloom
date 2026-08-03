@@ -12,6 +12,7 @@ class Site < ApplicationRecord
   has_many :questionnaires, dependent: :destroy
   has_many :registry_collections, dependent: :destroy
   has_many :albums, dependent: :destroy
+  has_many :album_exports, through: :albums
   has_many :media_assets, dependent: :destroy
   has_many :kiosk_displays, dependent: :destroy
   has_many :archive_snapshots, dependent: :destroy

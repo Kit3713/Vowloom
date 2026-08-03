@@ -111,6 +111,33 @@ class PrivacyBoundariesTest < ActionDispatch::IntegrationTest
     assert_select ".flash-alert", text: "That media is not available to you."
   end
 
+  test "a hidden public source post cannot leave its attachment downloadable" do
+    post = @site.posts.create!(user: @owner, space: :general, visibility: :everyone, body: "Removed photo", published_at: Time.current, hidden_at: Time.current)
+    asset = post.media_assets.build(site: @site, user: @owner, status: :approved)
+    asset.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    asset.save!
+    sign_in(@member)
+
+    get download_media_asset_path(asset)
+
+    assert_redirected_to gallery_path
+    follow_redirect!
+    assert_select ".flash-alert", text: "That media is not available to you."
+  end
+
+  test "visitors are denied original media downloads without a server error" do
+    post = @site.posts.create!(user: @owner, space: :general, visibility: :everyone, body: "Public photo", published_at: Time.current)
+    asset = post.media_assets.build(site: @site, user: @owner, status: :approved)
+    asset.file.attach(fixture_file_upload("photo.jpg", "image/jpeg"))
+    asset.save!
+
+    get download_media_asset_path(asset, original: 1)
+
+    assert_redirected_to gallery_path
+    follow_redirect!
+    assert_select ".flash-alert", text: "Only staff can download original files."
+  end
+
   test "members cannot claim unpublished registry items by guessing their URL" do
     collection = @site.registry_collections.create!(title: "Draft gifts", published: false)
     item = collection.registry_items.create!(title: "Draft item", quantity_requested: 1, published: false)

@@ -9,7 +9,11 @@ class PostsController < ApplicationController
 
     @post = @site.posts.build(content_params.merge(user: Current.user, group:, space:, published_at: Time.current))
     if create_post_with_attachments
-      redirect_to(group || feed_path(space), notice: "Post published.")
+      notice = "Post published."
+      if @announcement_delivery_ids.present?
+        notice = "Post published. Important-announcement email delivery queued for #{@announcement_delivery_ids.length} opted-in invited members."
+      end
+      redirect_to(group || feed_path(space), notice:)
     else
       @space = space
       @posts = visible_posts_for(space)
@@ -42,7 +46,9 @@ class PostsController < ApplicationController
       post_params.fetch(:files, []).reject(&:blank?).each do |file|
         @post.media_assets.create!(site: @site, user: Current.user, file:, status: Current.user.helper? || Current.user.admin? || Current.user.owner? ? :approved : :submitted)
       end
+      @announcement_delivery_ids = @post.queue_important_announcement_emails!(actor: Current.user) if important_announcement_email_requested?
     end
+    @announcement_delivery_ids&.each { |delivery_id| ImportantAnnouncementDeliveryJob.perform_later(delivery_id) }
     true
   rescue ActiveRecord::RecordInvalid => error
     @post.errors.add(:base, error.record.errors.full_messages.to_sentence) unless error.record == @post
@@ -60,5 +66,17 @@ class PostsController < ApplicationController
 
     redirect_to community_path, alert: "You cannot publish in that space."
     false
+  end
+
+  def important_announcement_email_requested?
+    return false unless @post.main? && (Current.user.owner? || Current.user.admin?) && important_announcement_email_available?
+
+    ActiveModel::Type::Boolean.new.cast(params.dig(:post, :send_important_announcement_email))
+  end
+
+  def important_announcement_email_available?
+    return true unless Rails.env.production?
+
+    Rails.application.config.action_mailer.delivery_method == :smtp && Rails.application.config.action_mailer.perform_deliveries
   end
 end
