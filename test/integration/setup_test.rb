@@ -7,7 +7,7 @@ class SetupTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Make Vowloom yours"
     assert_select ".setup-step", count: 4
     assert_select "dt", text: "Database"
-    assert_select "button.setup-submit[type='submit']", text: "Initialize Vowloom", count: 1
+    assert_select "button.setup-submit[type='submit']", text: /Finish setup and open Vowloom/, count: 1
     assert_select "input.setup-submit", count: 0
 
     assert_difference [ "Site.count", "User.count", "Event.count", "Post.count", "Album.count", "AuditEvent.count" ], 1 do

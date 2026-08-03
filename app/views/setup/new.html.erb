@@ -185,13 +185,11 @@
       </div>
     </section>
 
-    <section class="setup-launch">
-      <div>
-        <p class="eyebrow">Ready to launch</p>
-        <h2>Initialize the wedding community</h2>
-        <p>Setup is transactional: either every selected item is created successfully or nothing is kept. You will be signed in as Owner when it finishes.</p>
-      </div>
-      <%= form.button "Initialize Vowloom", type: "submit", class: "button setup-submit", data: { disable_with: "Initializing…" } %>
+    <section class="setup-launch" aria-label="Finish setup">
+      <%= form.button type: "submit", class: "setup-submit", data: { disable_with: "Creating your wedding site…" } do %>
+        <strong>Finish setup and open Vowloom</strong>
+        <span>Create the wedding site and sign me in as Owner</span>
+      <% end %>
     </section>
   <% end %>
 </main>
