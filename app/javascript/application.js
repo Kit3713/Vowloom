@@ -41,32 +41,126 @@ const bindQuestionnaireForms = () => {
 
 document.addEventListener("turbo:load", bindQuestionnaireForms)
 
-const daysInMonth = (year, month) => new Date(Date.UTC(year, month, 0)).getUTCDate()
+const calendarDateFromIso = (value) => {
+  if (!value) return null
 
-const bindDateJumpControls = () => {
-  document.querySelectorAll("[data-date-jump-control]").forEach((control) => {
-    if (control.dataset.dateJumpBound) return
+  const [year, month, day] = value.split("-").map(Number)
+  return new Date(Date.UTC(year, month - 1, day))
+}
 
-    const dateInput = control.querySelector("[data-date-jump-date]")
-    const yearInput = control.querySelector("[data-date-jump-year]")
-    if (!dateInput || !yearInput) return
+const calendarIsoDate = (date) => [
+  date.getUTCFullYear(),
+  String(date.getUTCMonth() + 1).padStart(2, "0"),
+  String(date.getUTCDate()).padStart(2, "0")
+].join("-")
 
-    control.dataset.dateJumpBound = "true"
-    yearInput.addEventListener("change", () => {
-      const year = Number.parseInt(yearInput.value, 10)
-      if (!Number.isInteger(year) || year < 1900 || year > 2200) return
+const calendarDisplayDate = (date) => new Intl.DateTimeFormat(undefined, {
+  dateStyle: "long",
+  timeZone: "UTC"
+}).format(date)
 
-      const current = dateInput.value ? dateInput.value.split("-").map(Number) : [year, new Date().getMonth() + 1, new Date().getDate()]
-      const month = current[1]
-      const day = Math.min(current[2], daysInMonth(year, month))
-      dateInput.value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-      dateInput.dispatchEvent(new Event("change", { bubbles: true }))
+const calendarToday = () => {
+  const today = new Date()
+  return new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))
+}
+
+const bindWeddingCalendars = () => {
+  document.querySelectorAll("[data-wedding-calendar]").forEach((calendar) => {
+    if (calendar.dataset.calendarBound) return
+
+    const valueInput = calendar.querySelector("[data-calendar-value]")
+    const openButton = calendar.querySelector("[data-calendar-open]")
+    const dialog = calendar.querySelector("[data-calendar-dialog]")
+    const monthSelect = calendar.querySelector("[data-calendar-month]")
+    const yearSelect = calendar.querySelector("[data-calendar-year]")
+    const daysGrid = calendar.querySelector("[data-calendar-days]")
+    const display = calendar.querySelector("[data-calendar-display]")
+    if (!valueInput || !openButton || !dialog || !monthSelect || !yearSelect || !daysGrid || !display) return
+
+    calendar.dataset.calendarBound = "true"
+    const initialDate = calendarDateFromIso(valueInput.value) || calendarToday()
+    let viewedDate = new Date(Date.UTC(initialDate.getUTCFullYear(), initialDate.getUTCMonth(), 1))
+
+    const renderCalendar = () => {
+      const year = viewedDate.getUTCFullYear()
+      const month = viewedDate.getUTCMonth()
+      monthSelect.value = String(month)
+      yearSelect.value = String(year)
+      daysGrid.replaceChildren()
+
+      const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay()
+      const dayCount = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+      const selectedIso = valueInput.value
+      const todayIso = calendarIsoDate(calendarToday())
+
+      for (let blank = 0; blank < firstWeekday; blank += 1) {
+        const spacer = document.createElement("span")
+        spacer.className = "calendar-day-spacer"
+        spacer.setAttribute("role", "gridcell")
+        daysGrid.append(spacer)
+      }
+
+      for (let day = 1; day <= dayCount; day += 1) {
+        const date = new Date(Date.UTC(year, month, day))
+        const isoDate = calendarIsoDate(date)
+        const button = document.createElement("button")
+        button.type = "button"
+        button.className = "calendar-day"
+        button.textContent = String(day)
+        button.setAttribute("role", "gridcell")
+        button.setAttribute("aria-label", calendarDisplayDate(date))
+        button.setAttribute("aria-selected", (isoDate === selectedIso).toString())
+        if (isoDate === selectedIso) button.classList.add("calendar-day-selected")
+        if (isoDate === todayIso) button.classList.add("calendar-day-today")
+        button.addEventListener("click", () => {
+          valueInput.value = isoDate
+          display.textContent = calendarDisplayDate(date)
+          valueInput.dispatchEvent(new Event("change", { bubbles: true }))
+          dialog.close()
+        })
+        daysGrid.append(button)
+      }
+    }
+
+    openButton.addEventListener("click", () => {
+      const selected = calendarDateFromIso(valueInput.value)
+      if (selected) viewedDate = new Date(Date.UTC(selected.getUTCFullYear(), selected.getUTCMonth(), 1))
+      renderCalendar()
+      dialog.showModal()
     })
-
-    dateInput.addEventListener("change", () => {
-      if (dateInput.value) yearInput.value = dateInput.value.slice(0, 4)
+    monthSelect.addEventListener("change", () => {
+      viewedDate = new Date(Date.UTC(viewedDate.getUTCFullYear(), Number(monthSelect.value), 1))
+      renderCalendar()
+    })
+    yearSelect.addEventListener("change", () => {
+      viewedDate = new Date(Date.UTC(Number(yearSelect.value), viewedDate.getUTCMonth(), 1))
+      renderCalendar()
+    })
+    calendar.querySelector("[data-calendar-previous]").addEventListener("click", () => {
+      viewedDate = new Date(Date.UTC(viewedDate.getUTCFullYear(), viewedDate.getUTCMonth() - 1, 1))
+      renderCalendar()
+    })
+    calendar.querySelector("[data-calendar-next]").addEventListener("click", () => {
+      viewedDate = new Date(Date.UTC(viewedDate.getUTCFullYear(), viewedDate.getUTCMonth() + 1, 1))
+      renderCalendar()
+    })
+    calendar.querySelector("[data-calendar-today]").addEventListener("click", () => {
+      const utcToday = calendarToday()
+      valueInput.value = calendarIsoDate(utcToday)
+      display.textContent = calendarDisplayDate(utcToday)
+      valueInput.dispatchEvent(new Event("change", { bubbles: true }))
+      dialog.close()
+    })
+    calendar.querySelector("[data-calendar-clear]").addEventListener("click", () => {
+      valueInput.value = ""
+      display.textContent = "Choose a date"
+      valueInput.dispatchEvent(new Event("change", { bubbles: true }))
+      dialog.close()
+    })
+    calendar.querySelectorAll("[data-calendar-close]").forEach((button) => {
+      button.addEventListener("click", () => dialog.close())
     })
   })
 }
 
-document.addEventListener("turbo:load", bindDateJumpControls)
+document.addEventListener("turbo:load", bindWeddingCalendars)

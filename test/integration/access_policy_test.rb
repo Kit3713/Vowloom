@@ -57,7 +57,8 @@ class AccessPolicyTest < ActionDispatch::IntegrationTest
     get management_path
     assert_response :success
     assert_select "h2", text: "Website settings"
-    assert_select "[data-date-jump-control]", count: 1
+    assert_select "[data-wedding-calendar]", count: 1
+    assert_select "dialog[data-calendar-dialog] select[data-calendar-year]", count: 1
     assert_select "select[name='site[time_zone]']", count: 1
     assert_select ".email-delivery-status", text: /Email recovery is not active yet/
 

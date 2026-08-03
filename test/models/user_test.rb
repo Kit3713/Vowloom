@@ -15,4 +15,14 @@ class UserTest < ActiveSupport::TestCase
       second_owner.save!(validate: false)
     end
   end
+
+  test "passwords require eight characters" do
+    user = @site.users.build(display_name: "Member", login_identifier: "member-#{SecureRandom.hex(4)}", password: "1234567", password_confirmation: "1234567")
+
+    assert_not user.valid?
+    assert_includes user.errors[:password], "is too short (minimum is 8 characters)"
+
+    user.password = user.password_confirmation = "12345678"
+    assert_predicate user, :valid?
+  end
 end

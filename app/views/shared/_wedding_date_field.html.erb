@@ -1,13 +1,45 @@
 <% input_id = "#{form.object_name.to_s.parameterize(separator: '_')}_#{attribute}" %>
 <% selected_date = form.object.public_send(attribute) %>
-<div class="date-jump-control" data-date-jump-control>
-  <div class="field">
-    <%= form.label attribute, label_text %>
-    <%= form.date_field attribute, id: input_id, data: { date_jump_date: true } %>
-  </div>
-  <div class="field year-jump-field">
-    <%= label_tag "#{input_id}_year", "Jump to year" %>
-    <%= tag.input type: "number", id: "#{input_id}_year", value: selected_date&.year || Date.current.year, min: 1900, max: 2200, inputmode: "numeric", data: { date_jump_year: true } %>
-  </div>
+<% dialog_id = "#{input_id}_calendar" %>
+<div class="wedding-calendar" data-wedding-calendar data-selected-date="<%= selected_date&.iso8601 %>">
+  <%= form.hidden_field attribute, id: input_id, data: { calendar_value: true } %>
+  <%= label_tag "#{input_id}_open", label_text %>
+  <button type="button" id="<%= input_id %>_open" class="calendar-open-button" data-calendar-open aria-haspopup="dialog" aria-controls="<%= dialog_id %>">
+    <span data-calendar-display><%= selected_date ? selected_date.to_fs(:long) : "Choose a date" %></span>
+    <span aria-hidden="true">▾</span>
+  </button>
+
+  <dialog id="<%= dialog_id %>" class="calendar-dialog" data-calendar-dialog aria-labelledby="<%= dialog_id %>_heading">
+    <div class="calendar-dialog-header">
+      <h3 id="<%= dialog_id %>_heading"><%= label_text %></h3>
+      <button type="button" class="calendar-icon-button" data-calendar-close aria-label="Close calendar">×</button>
+    </div>
+    <div class="calendar-navigation">
+      <button type="button" class="calendar-icon-button" data-calendar-previous aria-label="Previous month">‹</button>
+      <label>
+        <span class="sr-only">Month</span>
+        <select data-calendar-month>
+          <% Date::MONTHNAMES.compact.each_with_index do |month_name, index| %>
+            <option value="<%= index %>"><%= month_name %></option>
+          <% end %>
+        </select>
+      </label>
+      <label>
+        <span class="sr-only">Year</span>
+        <select data-calendar-year>
+          <% (1900..2200).each do |year| %><option value="<%= year %>"><%= year %></option><% end %>
+        </select>
+      </label>
+      <button type="button" class="calendar-icon-button" data-calendar-next aria-label="Next month">›</button>
+    </div>
+    <div class="calendar-weekdays" aria-hidden="true">
+      <% %w[Sun Mon Tue Wed Thu Fri Sat].each do |day| %><span><%= day %></span><% end %>
+    </div>
+    <div class="calendar-days" data-calendar-days role="grid" aria-label="Calendar days"></div>
+    <div class="calendar-dialog-actions">
+      <button type="button" class="button button-secondary" data-calendar-today>Today</button>
+      <button type="button" class="button button-secondary" data-calendar-clear>Clear</button>
+      <button type="button" class="button" data-calendar-close>Done</button>
+    </div>
+  </dialog>
 </div>
-<small class="date-jump-help">Choose a nearby date from the calendar, or enter a year to jump there immediately.</small>

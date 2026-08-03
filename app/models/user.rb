@@ -21,6 +21,7 @@ class User < ApplicationRecord
   has_many :audit_events, foreign_key: :actor_id, dependent: :restrict_with_exception
 
   validates :display_name, presence: true, length: { maximum: 80 }
+  validates :password, length: { minimum: 8, maximum: 72 }, allow_nil: true
   validate :profile_photo_is_an_image
   validate :only_owner_for_site, if: :owner?
   validate :important_announcement_email_requires_recovery_email, if: :important_announcement_emails?

@@ -35,7 +35,7 @@
         <h2 id="wedding-step-heading">Create the front door</h2>
         <p class="setup-help">These details become the familiar cover page your guests see first.</p>
 
-        <%= form.fields_for :site, @site do |f| %>
+        <%= fields_for :site, @site do |f| %>
           <div class="setup-grid">
             <div class="field field-wide">
               <%= f.label :name, "Wedding name" %>
@@ -93,7 +93,7 @@
 
         <%= render "shared/email_delivery_status" %>
 
-        <%= form.fields_for :owner, @owner do |f| %>
+        <%= fields_for :owner, @owner do |f| %>
           <div class="setup-grid">
             <div class="field">
               <%= f.label :display_name, "Your name" %>
@@ -110,12 +110,12 @@
             </div>
             <div class="field">
               <%= f.label :password %>
-              <%= f.password_field :password, required: true, autocomplete: "new-password", minlength: 12, maxlength: 72 %>
-              <small>Use at least 12 characters.</small>
+              <%= f.password_field :password, required: true, autocomplete: "new-password", minlength: 8, maxlength: 72 %>
+              <small>Use at least 8 characters.</small>
             </div>
             <div class="field">
               <%= f.label :password_confirmation, "Confirm password" %>
-              <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 12, maxlength: 72 %>
+              <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 8, maxlength: 72 %>
             </div>
           </div>
         <% end %>
@@ -132,7 +132,7 @@
           <span><strong>Create this event during initialization</strong><small>Uncheck it if the schedule is not ready yet.</small></span>
         </label>
 
-        <%= form.fields_for :event, @event do |f| %>
+        <%= fields_for :event, @event do |f| %>
           <div class="setup-grid">
             <div class="field field-wide">
               <%= f.label :title, "Event title" %>
