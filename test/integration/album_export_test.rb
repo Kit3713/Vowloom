@@ -100,6 +100,16 @@ class AlbumExportTest < ActionDispatch::IntegrationTest
     assert_predicate @album.album_exports.last, :include_originals?
   end
 
+  test "expired ZIPs are purged by the scheduled cleanup job" do
+    export = @album.album_exports.create!(requested_by: @member, expires_at: 1.minute.ago, status: :ready)
+    export.archive.attach(io: StringIO.new("temporary archive"), filename: "temporary.zip", content_type: "application/zip")
+
+    assert_difference "AlbumExport.count", -1 do
+      PurgeExpiredAlbumExportsJob.perform_now
+    end
+    assert_not ActiveStorage::Attachment.exists?(record: export, name: "archive")
+  end
+
   private
 
   def create_user(name, role)

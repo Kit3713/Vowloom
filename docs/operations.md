@@ -2,7 +2,7 @@
 
 ## Deploying
 
-Copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, set `VOWLOOM_HOST` to the public domain, and copy the Rails master key from the deployment host into `RAILS_MASTER_KEY`. Keep `.env` and `config/master.key` private.
+Copy `.env.example` to `.env`, set a unique `POSTGRES_PASSWORD`, set `VOWLOOM_HOST` to the public domain, and supply either the Rails master key through `RAILS_MASTER_KEY` or a runtime-managed `SECRET_KEY_BASE`. Keep `.env`, `config/master.key`, and all secret values private.
 
 Run the portable Compose specification with either runtime:
 
@@ -47,7 +47,7 @@ docker compose exec -T db pg_dumpall -U vowloom > vowloom-postgres.sql
 docker run --rm -v vowloom_media_data:/data -v "$PWD":/backup alpine tar -C /data -czf /backup/vowloom-media.tar.gz .
 ```
 
-Also retain the matching `.env` secrets (especially `RAILS_MASTER_KEY`) in a secure password manager or encrypted backup. Without the Rails master key, encrypted credentials cannot be recovered.
+Also retain the matching `.env` secrets in a secure password manager or encrypted backup. Without the Rails master key, encrypted credentials cannot be recovered; if a deployment instead uses only `SECRET_KEY_BASE`, preserve that value as well so signed sessions and reset links remain valid after restoration.
 
 ## Restore rehearsal
 

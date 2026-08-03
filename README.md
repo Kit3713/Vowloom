@@ -17,7 +17,7 @@ docker compose up --build
 podman compose up --build
 ```
 
-For a non-local deployment, copy `.env.example` to `.env`, set a strong `POSTGRES_PASSWORD`, supply the Rails master key, and set `FORCE_SSL=true` behind an HTTPS reverse proxy.
+For a non-local deployment, copy `.env.example` to `.env`, set a strong `POSTGRES_PASSWORD`, supply either the Rails master key or a separately managed `SECRET_KEY_BASE`, and set `FORCE_SSL=true` behind an HTTPS reverse proxy.
 
 The `web` container exposes a health endpoint at `/up` and only accepts the hostname in `VOWLOOM_HOST` (plus local loopback checks). Set that value to the exact public hostname before deploying.
 
