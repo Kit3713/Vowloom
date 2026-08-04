@@ -1,4 +1,4 @@
-<% questionnaire = post.postable %>
+<% questionnaire = local_assigns[:questionnaire] || post.postable %>
 <% response = if questionnaire.individual?
   questionnaire.responses.find_by(user: Current.user) || questionnaire.responses.build(user: Current.user)
 elsif Current.user&.invitee&.household
@@ -9,7 +9,7 @@ end %>
   <%= simple_format(questionnaire.introduction) if questionnaire.introduction.present? %>
   <div class="interactive-meta"><span><strong><%= questionnaire.questions.reject(&:information?).count %></strong> questions</span><span><strong><%= questionnaire.responses.where.not(submitted_at: nil).count %></strong> responses</span><span><%= questionnaire.audience_summary %></span></div>
 
-  <% if response && questionnaire.open_for_responses? && questionnaire.response_editable?(response) %>
+  <% if local_assigns.fetch(:interactive, true) && response && questionnaire.open_for_responses? && questionnaire.response_editable?(response) %>
     <% current_answers = response.answers.index_by(&:question_id).transform_values { |answer| answer.value.fetch("answer", nil) } %>
     <details class="inline-questionnaire" <%= "open" unless response.submitted_at? %>>
       <summary><span><%= response.submitted_at? ? "Review or change your answers" : "Answer now" %></span><span aria-hidden="true">→</span></summary>

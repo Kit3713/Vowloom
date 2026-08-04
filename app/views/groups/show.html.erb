@@ -5,10 +5,9 @@
   </header>
 
   <section class="feed-shell">
-    <p class="eyebrow"><%= @group.participation.humanize %> group</p>
+    <p class="eyebrow"><%= @group.private_group? ? "Invite-only group" : "Open group" %></p>
     <h1><%= @group.name %></h1>
     <%= simple_format(@group.description) %>
-    <p><%= link_to "Open live chat", group_chat_path(@group), class: "button button-secondary" if @conversation %></p>
 
     <% if @group.event || @group_questionnaires.any? || @pinned_resources.any? || @resource_options %>
       <section class="post-card group-resources" aria-label="Group planning resources">
@@ -138,12 +137,14 @@
       <% end %>
     </section>
 
-    <% if authenticated? && @group.site.content_live? && (@group.discussion? || Current.user.owner? || Current.user.admin? || Current.user.helper?) %>
+    <% if authenticated? && @group.site.content_live? && @group.accessible_to?(Current.user) %>
       <%= form_with model: @post, class: "composer" do |f| %>
         <%= f.hidden_field :space, value: "group_space" %>
         <%= f.hidden_field :group_id, value: @group.id %>
+        <%= f.label :title, "Title (optional)" %>
+        <%= f.text_field :title %>
         <%= f.label :body, "Write a post" %>
-        <%= f.text_area :body, required: true, rows: 3 %>
+        <%= f.text_area :body, rows: 3, placeholder: "Share an update, question, photo, or planning idea…" %>
         <%= f.label :files, "Photos or videos (optional)" %>
         <%= f.file_field :files, multiple: true, accept: "image/*,video/*" %>
         <%= f.submit "Publish", class: "button" %>
@@ -172,9 +173,12 @@
             </figure>
           <% end %>
         </section>
+        <div class="planning-blocks"><% post.post_blocks.each do |block| %><%= render "post_blocks/block", block: %><% end %></div>
+        <% if post.manageable_by?(Current.user) && @group.site.content_live? %><%= render "post_blocks/builder", post: post %><% end %>
         <footer>
           <%= pluralize(post.comments.visible.count, "comment") %>
           <%= render "moderation_reports/button", reportable: post if authenticated? && @group.site.content_live? %>
+          <%= button_to "Delete", post_path(post), method: :delete, class: "text-button", form: { data: { turbo_confirm: "Delete this post?" } } if post.manageable_by?(Current.user) && @group.site.content_live? %>
         </footer>
         <% if post.comments_enabled? %><%= render "comments/thread", post: post %><% end %>
       </article>

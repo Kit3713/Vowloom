@@ -74,7 +74,7 @@ class QuestionnairesController < ApplicationController
       @questionnaire.save!
       QuestionnaireTemplates.apply!(@questionnaire, template_key) if QuestionnaireTemplates.keys.include?(template_key)
       if params[:publish_to_feed] == "1"
-        @questionnaire.create_timeline_post!(
+        timeline_post = @questionnaire.create_timeline_post!(
           site: @site,
           user: Current.user,
           space: :main,
@@ -84,6 +84,7 @@ class QuestionnairesController < ApplicationController
           body: @questionnaire.introduction,
           published_at: Time.current
         )
+        timeline_post.post_blocks.create!(kind: "questionnaire", blockable: @questionnaire, created_by: Current.user, position: 1, title: @questionnaire.title, settings: { "interactive" => true, "audience" => "members" })
       end
     end
     true

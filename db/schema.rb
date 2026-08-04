@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_04_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,8 +140,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
     t.bigint "post_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["post_id"], name: "index_comments_on_post_id"
     t.index ["parent_id"], name: "index_comments_on_parent_id"
+    t.index ["post_id"], name: "index_comments_on_post_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
   end
 
@@ -309,6 +309,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
     t.index ["site_id"], name: "index_moderation_reports_on_site_id"
   end
 
+  create_table "post_block_responses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "post_block_id", null: false
+    t.datetime "submitted_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["post_block_id", "user_id"], name: "index_post_block_responses_on_post_block_id_and_user_id", unique: true
+    t.index ["post_block_id"], name: "index_post_block_responses_on_post_block_id"
+    t.index ["user_id"], name: "index_post_block_responses_on_user_id"
+  end
+
+  create_table "post_blocks", force: :cascade do |t|
+    t.bigint "blockable_id"
+    t.string "blockable_type"
+    t.text "body"
+    t.datetime "closes_at"
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id", null: false
+    t.string "kind", null: false
+    t.integer "lock_version", default: 0, null: false
+    t.datetime "opens_at"
+    t.integer "position", default: 1, null: false
+    t.bigint "post_id", null: false
+    t.jsonb "settings", default: {}, null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["blockable_type", "blockable_id"], name: "index_post_blocks_on_blockable_type_and_blockable_id"
+    t.index ["created_by_id"], name: "index_post_blocks_on_created_by_id"
+    t.index ["post_id", "position"], name: "index_post_blocks_on_post_id_and_position"
+    t.index ["post_id"], name: "index_post_blocks_on_post_id"
+  end
+
   create_table "posts", force: :cascade do |t|
     t.datetime "announcement_email_queued_at"
     t.text "body"
@@ -320,9 +353,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
     t.datetime "hidden_at"
     t.boolean "important_announcement", default: false, null: false
     t.boolean "pinned", default: false, null: false
+    t.integer "post_type", default: 0, null: false
     t.bigint "postable_id"
     t.string "postable_type"
-    t.integer "post_type", default: 0, null: false
     t.datetime "published_at"
     t.bigint "site_id", null: false
     t.integer "space", default: 0, null: false
@@ -334,8 +367,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
     t.index ["group_id"], name: "index_posts_on_group_conversation", unique: true, where: "((conversation = true) AND (group_id IS NOT NULL))"
     t.index ["group_id"], name: "index_posts_on_group_id"
     t.index ["postable_type", "postable_id"], name: "index_posts_on_postable_type_and_postable_id"
-    t.index ["site_id", "space", "published_at"], name: "index_posts_on_site_id_and_space_and_published_at"
     t.index ["site_id", "post_type", "published_at"], name: "index_posts_on_site_id_and_post_type_and_published_at"
+    t.index ["site_id", "space", "published_at"], name: "index_posts_on_site_id_and_space_and_published_at"
     t.index ["site_id"], name: "index_posts_on_global_conversation", unique: true, where: "((conversation = true) AND (group_id IS NULL))"
     t.index ["site_id"], name: "index_posts_on_site_id"
     t.index ["user_id"], name: "index_posts_on_user_id"
@@ -667,8 +700,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
   add_foreign_key "archive_snapshots", "users", column: "created_by_id"
   add_foreign_key "audit_events", "sites"
   add_foreign_key "audit_events", "users", column: "actor_id"
-  add_foreign_key "comments", "posts"
   add_foreign_key "comments", "comments", column: "parent_id"
+  add_foreign_key "comments", "posts"
   add_foreign_key "comments", "users"
   add_foreign_key "event_invitations", "events"
   add_foreign_key "event_invitations", "invitees"
@@ -688,14 +721,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
   add_foreign_key "kiosk_displays", "questionnaires"
   add_foreign_key "kiosk_displays", "sites"
   add_foreign_key "kiosk_displays", "users", column: "created_by_id"
-  add_foreign_key "media_assets", "events"
   add_foreign_key "media_assets", "comments"
+  add_foreign_key "media_assets", "events"
   add_foreign_key "media_assets", "posts"
   add_foreign_key "media_assets", "sites"
   add_foreign_key "media_assets", "users"
   add_foreign_key "moderation_reports", "sites"
   add_foreign_key "moderation_reports", "users", column: "handled_by_id"
   add_foreign_key "moderation_reports", "users", column: "reporter_id"
+  add_foreign_key "post_block_responses", "post_blocks"
+  add_foreign_key "post_block_responses", "users"
+  add_foreign_key "post_blocks", "posts"
+  add_foreign_key "post_blocks", "users", column: "created_by_id"
   add_foreign_key "posts", "events"
   add_foreign_key "posts", "groups"
   add_foreign_key "posts", "sites"

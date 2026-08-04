@@ -9,6 +9,7 @@ class Post < ApplicationRecord
   has_many :comments, dependent: :destroy
   has_many :media_assets, dependent: :nullify
   has_many :announcement_deliveries, dependent: :destroy
+  has_many :post_blocks, -> { ordered }, dependent: :destroy
 
   enum :space, { main: 0, general: 1, group_space: 2, couple_inbox: 3 }, default: :main
   enum :visibility, { everyone: 0, members_only: 1 }, default: :everyone
@@ -40,6 +41,13 @@ class Post < ApplicationRecord
     return viewer.owner? || viewer.admin? || viewer == user if conversation? && group_space? && group.information?
 
     true
+  end
+
+  def manageable_by?(viewer)
+    return false unless viewer&.site_id == site_id
+    return true if viewer.owner? || viewer.admin? || viewer.helper?
+
+    viewer == user && (general? || group_space?)
   end
 
   def email_announcement_deliverable?

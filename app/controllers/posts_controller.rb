@@ -30,6 +30,15 @@ class PostsController < ApplicationController
     redirect_to feed_path(post.space), notice: post.pinned? ? "Post pinned." : "Post unpinned."
   end
 
+  def destroy
+    post = current_site.posts.find(params[:id])
+    return redirect_to(comment_fallback(post), alert: "You cannot delete that post.") unless post.manageable_by?(Current.user)
+
+    post.update!(hidden_at: Time.current)
+    record_audit!("post.deleted", auditable: post, metadata: { space: post.space, recoverable: true })
+    redirect_to comment_fallback(post), notice: "Post deleted. An Owner or Admin can recover it from moderation records."
+  end
+
   private
 
   def post_params
@@ -60,7 +69,7 @@ class PostsController < ApplicationController
     allowed = case space
     when "main" then Current.user.owner? || Current.user.admin? || Current.user.helper?
     when "general" then Current.user.member? || Current.user.helper? || Current.user.admin? || Current.user.owner?
-    when "group_space" then group&.accessible_to?(Current.user) && (group.discussion? || Current.user.owner? || Current.user.admin? || Current.user.helper?)
+    when "group_space" then authenticated? && group&.accessible_to?(Current.user)
     else false
     end
     return true if allowed
@@ -73,6 +82,12 @@ class PostsController < ApplicationController
     return false unless @post.main? && (Current.user.owner? || Current.user.admin?) && important_announcement_email_available?
 
     ActiveModel::Type::Boolean.new.cast(params.dig(:post, :send_important_announcement_email))
+  end
+
+  def comment_fallback(post)
+    return group_path(post.group) if post.group_space?
+
+    feed_path(post.space)
   end
 
   def important_announcement_email_available?

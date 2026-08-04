@@ -5,20 +5,11 @@ class GroupChatsController < ApplicationController
   def show
     return redirect_to(new_session_path, alert: "Please sign in with your wedding invitation.") if @site.private_access? && !authenticated?
     return redirect_to(groups_path, alert: "That group is private.") unless @group.accessible_to?(Current.user)
-    return redirect_to(@group, alert: "This information group does not use member chat.") unless @group.discussion?
-
-    @conversation = @group.posts.visible.find_by(conversation: true)
+    redirect_to @group, status: :moved_permanently
   end
 
   def create
-    require_live_site!
-    return redirect_to(@group, alert: "Only discussion groups can open a live chat.") unless @group.discussion?
-    return redirect_to(@group, alert: "Only group staff can open a live chat.") unless manage_group?
-
-    @conversation = @group.posts.create!(site: @site, user: Current.user, space: :group_space, visibility: @group.private_group? ? :members_only : :everyone, title: "#{@group.name} chat", body: "Welcome to the #{@group.name} chat.", comments_enabled: true, conversation: true, published_at: Time.current)
-    redirect_to group_chat_path(@group), notice: "Group chat is open."
-  rescue ActiveRecord::RecordNotUnique
-    redirect_to group_chat_path(@group)
+    redirect_to @group, notice: "Posts and threaded conversations now live together in the group."
   end
 
   private
@@ -28,9 +19,5 @@ class GroupChatsController < ApplicationController
     return redirect_to(new_setup_path) unless @site
 
     @group = @site.groups.find(params[:group_id])
-  end
-
-  def manage_group?
-    authenticated? && (Current.user.owner? || Current.user.admin? || @group.created_by == Current.user)
   end
 end

@@ -17,6 +17,17 @@ class CommentsController < ApplicationController
     end
   end
 
+  def destroy
+    comment = Comment.joins(:post).where(posts: { site_id: current_site.id }).find(params[:id])
+    post = comment.post
+    allowed = comment.user == Current.user || Current.user.owner? || Current.user.admin? || Current.user.helper?
+    return redirect_to(comment_fallback(post), alert: "You cannot delete that comment.") unless allowed
+
+    comment.update!(hidden_at: Time.current)
+    record_audit!("comment.deleted", auditable: comment, metadata: { post_id: post.id, recoverable: true })
+    redirect_to comment_fallback(post), notice: "Comment deleted."
+  end
+
   private
 
   def comment_params

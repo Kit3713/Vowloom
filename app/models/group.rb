@@ -20,7 +20,7 @@ class Group < ApplicationRecord
   end
 
   def accepts_member_posts?
-    discussion?
+    true
   end
 
   private

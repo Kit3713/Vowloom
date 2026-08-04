@@ -3,6 +3,8 @@ class ModerationController < ApplicationController
 
   def index
     @reports = current_site.moderation_reports.open.includes(:reporter, :reportable).order(created_at: :asc)
+    @deleted_posts = current_site.posts.where.not(hidden_at: nil).includes(:user).order(hidden_at: :desc).limit(100)
+    @deleted_comments = Comment.joins(:post).where(posts: { site_id: current_site.id }).where.not(hidden_at: nil).includes(:user, :post).order(hidden_at: :desc).limit(100)
   end
 
   def update

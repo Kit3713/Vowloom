@@ -31,7 +31,10 @@ class Site < ApplicationRecord
   def media_bytes_used(excluding: nil)
     assets = media_assets
     assets = assets.where.not(id: excluding.id) if excluding&.persisted?
-    ActiveStorage::Attachment.where(record_type: "MediaAsset", name: "file", record_id: assets.select(:id)).joins(:blob).sum("active_storage_blobs.byte_size")
+    media_asset_bytes = ActiveStorage::Attachment.where(record_type: "MediaAsset", name: "file", record_id: assets.select(:id)).joins(:blob).sum("active_storage_blobs.byte_size")
+    block_ids = PostBlock.joins(:post).where(posts: { site_id: id }).select(:id)
+    block_file_bytes = ActiveStorage::Attachment.where(record_type: "PostBlock", name: "files", record_id: block_ids).joins(:blob).sum("active_storage_blobs.byte_size")
+    media_asset_bytes + block_file_bytes
   end
 
   def media_quota_gigabytes

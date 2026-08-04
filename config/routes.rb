@@ -30,8 +30,12 @@ Rails.application.routes.draw do
   get "community", to: "community#show"
   get "calendar", to: "calendars#show"
   get "feed/:space", to: "feeds#show", as: :feed, constraints: { space: /main|general/ }
-  resources :posts, only: %i[create update] do
-    resources :comments, only: :create
+  resources :posts, only: %i[create update destroy] do
+    resources :comments, only: %i[create destroy]
+    resources :post_blocks, only: %i[create update destroy]
+  end
+  resources :post_blocks, only: [] do
+    resource :response, only: :update, controller: "post_block_responses"
   end
   resources :events, only: %i[index show create update destroy] do
     get :calendar, on: :member
