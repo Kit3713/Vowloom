@@ -13,22 +13,7 @@
           <% if Current.user.profile_photo.attached? %><%= image_tag Current.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(Current.user) %></span><% end %>
           <span><%= @space == "main" ? "Share an update with everyone" : "Write something to the wedding community" %></span>
         </summary>
-        <div class="post-type-tabs" role="tablist" aria-label="Post type">
-          <button type="button" class="active" data-post-type-button="story"><span>✎</span> Text</button><button type="button" data-post-type-button="media_post"><%= social_icon(:image) %> Photo/video</button><button type="button" data-post-type-button="discussion"><%= social_icon(:chat) %> Discussion</button><% if @space == "main" %><button type="button" data-post-type-button="questionnaire"><%= social_icon(:questions) %> Questionnaire</button><% end %>
-        </div>
-        <div data-post-type-panel="post"><%= form_with model: @post, class: "composer post-composer" do |f| %>
-          <%= f.hidden_field :space, value: @space %>
-          <%= f.hidden_field :post_type, value: "story", data: { post_type_value: true } %>
-          <%= f.label :title, "Title (optional)" %><%= f.text_field :title, placeholder: "Give this post a headline" %>
-          <%= f.label :body, "Post" %><%= f.text_area :body, rows: 5, placeholder: "What would you like to share? Emoji work here too ✨", data: { comment_text: true } %>
-          <%= f.label :files, "Add photos or videos" %><%= f.file_field :files, multiple: true, accept: "image/*,video/*" %>
-          <% if @space == "general" %><%= f.label :visibility, "Audience" %><%= f.select :visibility, [["Members only", "members_only"], ["Everyone, including visitors", "everyone"]] %>
-          <% elsif Current.user.owner? || Current.user.admin? %>
-            <fieldset class="announcement-email-option"><legend>Important announcement</legend><% if @important_announcement_email_available %><%= f.check_box :send_important_announcement_email %><%= f.label :send_important_announcement_email, "Email this update to opted-in invited members" %><% else %><p>Email delivery becomes available after SMTP is configured.</p><% end %></fieldset>
-          <% end %>
-          <div class="composer-actions"><span class="muted">Photos and video are kept with the wedding history.</span><div class="composer-publish-tools"><details class="emoji-menu"><summary class="button button-secondary" title="Add an emoji">☺ Emoji</summary><div class="emoji-grid" aria-label="Wedding emojis"><% %w[❤️ 😂 🥰 😍 🥹 😊 🎉 🥂 💍 💐 ✨ 📸 👏 🙌 🔥 💕 😭 🤍 👍].each do |emoji| %><button type="button" data-insert-emoji="<%= emoji %>" aria-label="Add <%= emoji %>"><%= emoji %></button><% end %></div></details><%= f.submit "Publish post", class: "button" %></div></div>
-        <% end %></div>
-        <% if @space == "main" %><div data-post-type-panel="questionnaire" hidden><%= form_with model: @questionnaire, class: "composer questionnaire-composer" do |f| %><%= hidden_field_tag :publish_now, 1 %><%= hidden_field_tag :publish_to_feed, 1 %><%= label_tag :template, "Start with" %><%= select_tag :template, options_for_select(@questionnaire_templates.map { |key| [key.humanize, key] }), include_blank: "A blank questionnaire" %><%= f.label :title, "Questionnaire title" %><%= f.text_field :title, required: true, placeholder: "Meal choices, travel plans, song requests…" %><%= f.label :introduction, "What should guests know?" %><%= f.text_area :introduction, rows: 3 %><div class="setup-grid"><div class="field"><%= f.label :closes_at, "Close responses (optional)" %><%= f.datetime_local_field :closes_at %></div><div class="field"><%= f.label :results_visibility, "Who sees results?" %><%= f.select :results_visibility, [["Staff only", "staff_only"], ["Anonymous totals", "aggregate"], ["Members can see responses", "member_visible"]] %></div></div><div class="composer-actions"><span class="muted">It will appear as an interactive post in Main.</span><%= f.submit "Create questionnaire post", class: "button" %></div><% end %></div><% end %>
+        <%= render "posts/composer", post: @post, space: @space, email_available: @important_announcement_email_available %>
       </details>
     <% end %>
 
@@ -36,7 +21,7 @@
       <article class="post-card" id="<%= dom_id(post) %>">
         <%= turbo_stream_from post if authenticated? %>
         <header>
-          <span class="author"><% if post.user.profile_photo.attached? %><%= image_tag post.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(post.user) %></span><% end %><span class="author-copy"><strong><%= post.user.display_name %></strong><small><%= post.questionnaire_post? ? "Questionnaire" : post.discussion? ? "Discussion" : post.media_post? ? "Photo & video" : post.main? ? "Official update" : "Wedding member" %></small></span></span>
+          <span class="author"><% if post.user.profile_photo.attached? %><%= image_tag post.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(post.user) %></span><% end %><span class="author-copy"><strong><%= post.user.display_name %></strong><small><%= post.main? ? "Official post" : "Wedding member" %></small></span></span>
           <time datetime="<%= post.published_at.iso8601 %>" title="<%= post.published_at.to_fs(:long) %>"><%= time_ago_in_words(post.published_at) %> ago</time>
         </header>
         <%= tag.p("Pinned update", class: "eyebrow pinned-label") if post.pinned? %>

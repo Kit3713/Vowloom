@@ -9,6 +9,7 @@ class PostBlocksController < ApplicationController
     assign_resource(block)
     block.files.attach(Array(params.dig(:post_block, :files)).reject(&:blank?))
     if block.save
+      block.materialize_media!(site: current_site, user: Current.user)
       redirect_to fallback(post, anchor: helpers.dom_id(post)), notice: "Interactive block added."
     else
       redirect_to fallback(post, anchor: helpers.dom_id(post)), alert: block.errors.full_messages.to_sentence
@@ -39,7 +40,8 @@ class PostBlocksController < ApplicationController
   private
 
   def block_attributes
-    input = params.require(:post_block).permit(:kind, :title, :body, :opens_at, :closes_at, :options_text, :audience, :results_visibility, :response_edit_policy, :capacity, :address, :map_url, :interactive)
+    input = params.require(:post_block).permit(:kind, :title, :body, :opens_at, :closes_at, :options_text, :audience, :results_visibility, :response_edit_policy, :capacity, :address, :map_url, :interactive, :resource_key, files: [])
+    input.delete(:files)
     options = input.delete(:options_text).to_s.lines.map(&:strip).reject(&:blank?)
     settings = {
       "options" => options,

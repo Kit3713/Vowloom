@@ -7,7 +7,8 @@ class PostsController < ApplicationController
     group = space == "group_space" ? @site.groups.find_by(id: params.dig(:post, :group_id)) : nil
     return unless authorize_space!(space, group)
 
-    @post = @site.posts.build(content_params.merge(user: Current.user, group:, space:, published_at: Time.current))
+    @post = @site.posts.build(content_params.merge(user: Current.user, group:, space:, post_type: :story, published_at: Time.current))
+    build_post_elements
     if create_post_with_attachments
       notice = "Post published."
       if @announcement_delivery_ids.present?
@@ -42,20 +43,20 @@ class PostsController < ApplicationController
   private
 
   def post_params
-    params.require(:post).permit(:title, :body, :visibility, :comments_enabled, :group_id, :post_type, files: [])
+    params.require(:post).permit(
+      :title, :body, :visibility, :comments_enabled, :group_id, :space,
+      post_blocks_attributes: [ :kind, :title, :body, :interactive, :options_text, :capacity, :resource_key, :audience, :results_visibility, :response_edit_policy, :opens_at, :closes_at, :address, :map_url, { files: [] } ]
+    )
   end
 
   def content_params
-    post_params.except(:files)
+    post_params.except(:post_blocks_attributes, :space)
   end
 
   def create_post_with_attachments
     Post.transaction do
-      assets = post_params.fetch(:files, []).reject(&:blank?).map do |file|
-        @post.media_assets.build(site: @site, user: Current.user, file:, status: Current.user.helper? || Current.user.admin? || Current.user.owner? ? :approved : :submitted)
-      end
       @post.save!
-      assets.each { |asset| asset.save! unless asset.persisted? }
+      @post.post_blocks.select(&:media?).each { |block| block.materialize_media!(site: @site, user: Current.user) }
       @announcement_delivery_ids = @post.queue_important_announcement_emails!(actor: Current.user) if important_announcement_email_requested?
     end
     @announcement_delivery_ids&.each { |delivery_id| ImportantAnnouncementDeliveryJob.perform_later(delivery_id) }
@@ -63,6 +64,41 @@ class PostsController < ApplicationController
   rescue ActiveRecord::RecordInvalid => error
     @post.errors.add(:base, error.record.errors.full_messages.to_sentence) unless error.record == @post
     false
+  end
+
+  def build_post_elements
+    raw_elements = post_params[:post_blocks_attributes]
+    elements = raw_elements.respond_to?(:values) ? raw_elements.values : Array(raw_elements)
+    elements.first(30).each_with_index do |raw, index|
+      attributes = raw.to_h.with_indifferent_access
+      files = Array(attributes.delete(:files)).reject(&:blank?)
+      options = attributes.delete(:options_text).to_s.lines.map(&:strip).reject(&:blank?)
+      resource_key = attributes.delete(:resource_key).to_s
+      settings = {
+        "options" => options,
+        "items" => options.map { |text| { "id" => SecureRandom.hex(6), "text" => text, "done" => false } },
+        "grid" => Array.new(4) { Array.new(3, "") },
+        "interactive" => ActiveModel::Type::Boolean.new.cast(attributes.delete(:interactive)),
+        "audience" => attributes.delete(:audience).presence_in(%w[members staff]) || "members",
+        "results_visibility" => attributes.delete(:results_visibility).presence_in(%w[participants members staff]) || "participants",
+        "response_edit_policy" => attributes.delete(:response_edit_policy).presence_in(%w[editable locked]) || "editable",
+        "capacity" => attributes.delete(:capacity).to_i,
+        "address" => attributes.delete(:address).to_s,
+        "map_url" => attributes.delete(:map_url).to_s
+      }
+      block = @post.post_blocks.build(attributes.slice(:kind, :title, :body, :opens_at, :closes_at).merge(created_by: Current.user, position: index + 1, settings:))
+      assign_element_resource(block, resource_key)
+      block.files.attach(files)
+    end
+  end
+
+  def assign_element_resource(block, resource_key)
+    type, id = resource_key.split(":", 2)
+    block.blockable = case type
+    when "Questionnaire" then @site.questionnaires.find_by(id:)
+    when "Event" then @site.events.find_by(id:)
+    when "Album" then @site.albums.find_by(id:)
+    end
   end
 
   def authorize_space!(space, group)

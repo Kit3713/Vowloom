@@ -1,0 +1,43 @@
+<% labels = {
+  "text" => "Text", "media" => "Photo / video", "file_resource" => "Downloadable file",
+  "note" => "Sticky note", "sheet" => "Spreadsheet sticky note", "list" => "List sticky note",
+  "questionnaire" => "Questionnaire", "event_rsvp" => "Event / RSVP", "checklist" => "Personal checklist",
+  "signup" => "Shared sign-up", "location" => "Location", "album" => "Gallery album"
+} %>
+<% field_name = "post[post_blocks_attributes][#{index}]" %>
+<article class="post-element-editor post-element-editor-<%= kind.dasherize %>" data-post-element>
+  <input type="hidden" name="<%= field_name %>[kind]" value="<%= kind %>">
+  <header class="post-element-editor-heading">
+    <span class="post-element-drag" aria-hidden="true">⠿</span>
+    <div><strong><%= labels.fetch(kind) %></strong><small>Post element</small></div>
+    <div class="post-element-controls"><button type="button" data-move-element="up" title="Move element up" aria-label="Move element up">↑</button><button type="button" data-move-element="down" title="Move element down" aria-label="Move element down">↓</button><button type="button" data-remove-element title="Remove element" aria-label="Remove element">×</button></div>
+  </header>
+  <div class="post-element-editor-body">
+    <% if kind == "text" %>
+      <label class="sr-only">Text</label><textarea name="<%= field_name %>[body]" rows="4" maxlength="10000" placeholder="Write something… Emoji from your keyboard work here." data-post-text></textarea>
+    <% elsif kind == "media" %>
+      <label class="element-file-drop"><span class="element-file-icon">▧</span><span><strong>Choose photos or videos</strong><small>Up to 10 files in this element</small></span><input type="file" name="<%= field_name %>[files][]" multiple accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime" data-element-files></label><div class="element-file-preview" data-element-file-preview hidden></div>
+      <label>Caption (optional)<input type="text" name="<%= field_name %>[title]" maxlength="180" placeholder="What are we looking at?"></label>
+    <% elsif kind == "file_resource" %>
+      <label>Heading (optional)<input type="text" name="<%= field_name %>[title]" maxlength="180" placeholder="Reception schedule, seating sheet, travel guide…"></label>
+      <label class="element-file-drop"><span class="element-file-icon">⇩</span><span><strong>Choose downloadable files</strong><small>PDF, Word, Excel, PowerPoint, OpenDocument, text, or CSV</small></span><input type="file" name="<%= field_name %>[files][]" multiple accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods" data-element-files></label><div class="element-file-preview" data-element-file-preview hidden></div>
+      <label>Description (optional)<textarea name="<%= field_name %>[body]" rows="2" maxlength="10000"></textarea></label>
+    <% elsif %w[note sheet list].include?(kind) %>
+      <label>Heading (optional)<input type="text" name="<%= field_name %>[title]" maxlength="180" placeholder="<%= kind == "note" ? "Ideas and notes" : kind == "sheet" ? "Shared planning grid" : "Things to remember" %>"></label>
+      <% if kind == "note" %><label>Note<textarea name="<%= field_name %>[body]" rows="4" maxlength="10000" placeholder="Start the sticky note…"></textarea></label><% end %>
+      <% if kind == "list" %><label>Starting items <small>One per line; more can be added later.</small><textarea name="<%= field_name %>[options_text]" rows="4" placeholder="Call the florist&#10;Confirm the shuttle&#10;Pack the decorations"></textarea></label><% end %>
+      <label class="element-interactive-toggle"><input type="checkbox" name="<%= field_name %>[interactive]" value="1" checked><span><strong>Collaborative</strong><small>Members can update this <%= kind == "sheet" ? "small spreadsheet" : kind %> directly.</small></span></label>
+    <% elsif %w[questionnaire event_rsvp album].include?(kind) %>
+      <label>Choose <%= labels.fetch(kind).downcase %><select name="<%= field_name %>[resource_key]" required><option value="">Select an existing <%= labels.fetch(kind).downcase %></option><% resource_options.fetch(kind).each do |label, value| %><option value="<%= value %>"><%= label %></option><% end %></select></label>
+      <% if kind != "album" %><label class="element-interactive-toggle"><input type="checkbox" name="<%= field_name %>[interactive]" value="1" checked><span><strong>Interactive</strong><small>Members can <%= kind == "questionnaire" ? "respond here" : "RSVP here" %>.</small></span></label><% end %>
+    <% elsif %w[checklist signup].include?(kind) %>
+      <label>Heading<input type="text" name="<%= field_name %>[title]" maxlength="180" required placeholder="<%= kind == "signup" ? "Choose a volunteer shift" : "Your wedding-day checklist" %>"></label>
+      <label>Choices <small>One per line</small><textarea name="<%= field_name %>[options_text]" rows="5" required placeholder="First choice&#10;Second choice&#10;Third choice"></textarea></label>
+      <% if kind == "signup" %><label>Spaces per choice (optional)<input type="number" name="<%= field_name %>[capacity]" min="1" max="10000"></label><% end %>
+      <input type="hidden" name="<%= field_name %>[interactive]" value="1">
+    <% elsif kind == "location" %>
+      <label>Heading (optional)<input type="text" name="<%= field_name %>[title]" maxlength="180" placeholder="Ceremony venue"></label><label>Address<textarea name="<%= field_name %>[address]" rows="2" maxlength="1000"></textarea></label><label>Map link (optional)<input type="url" name="<%= field_name %>[map_url]" placeholder="https://maps.example/…"></label><label>Directions or details (optional)<textarea name="<%= field_name %>[body]" rows="2" maxlength="10000"></textarea></label>
+    <% end %>
+    <% unless %w[text media file_resource note sheet list questionnaire event_rsvp checklist signup location album].include?(kind) %><p>Unsupported element.</p><% end %>
+  </div>
+</article>

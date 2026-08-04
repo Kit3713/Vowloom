@@ -1,0 +1,49 @@
+<% site = post.site || local_assigns[:group]&.site || current_site %>
+<% resource_options = {
+  "questionnaire" => site.questionnaires.order(:title).filter_map { |item| [item.title, "Questionnaire:#{item.id}"] if item.available_to?(Current.user) || item.manageable_by?(Current.user) },
+  "event_rsvp" => site.events.order(:starts_at).filter_map { |item| [item.title, "Event:#{item.id}"] if item.visible_to?(Current.user) },
+  "album" => site.albums.order(:title).map { |item| [item.title, "Album:#{item.id}"] }
+} %>
+<%= form_with model: post, class: "post-canvas-composer", multipart: true, data: { post_element_composer: true } do |f| %>
+  <%= f.hidden_field :space, value: space %>
+  <%= f.hidden_field :group_id, value: group.id if local_assigns[:group] %>
+
+  <div class="post-canvas-heading">
+    <div><strong>Build a post</strong><span>Add and combine whatever this post needs.</span></div>
+    <span class="post-element-count" data-element-count>1 element</span>
+  </div>
+
+  <div class="post-element-canvas" data-post-element-canvas>
+    <%= render "posts/element_fields", kind: "text", index: "0", resource_options: %>
+  </div>
+
+  <section class="element-library" aria-label="Add a post element">
+    <div class="element-library-heading"><strong>Add another element</strong><span>Mix and arrange up to 30 elements.</span></div>
+    <div class="element-library-grid">
+      <% [
+        ["text", "Text", "Write an update"], ["media", "Photo / video", "Share visual media"],
+        ["file_resource", "File", "Downloadable office file"], ["note", "Sticky note", "Shared or display-only"],
+        ["sheet", "Sticky sheet", "Small collaborative grid"], ["list", "Sticky list", "Shared checklist-style list"],
+        ["questionnaire", "Questionnaire", "Attach a form or poll"], ["event_rsvp", "Event / RSVP", "Attach an event"],
+        ["checklist", "Personal checklist", "Each member checks their own"], ["signup", "Shared sign-up", "Choose limited slots"],
+        ["location", "Location", "Address and map link"], ["album", "Gallery album", "Feature an album"]
+      ].each do |kind, label, description| %>
+        <button type="button" class="element-library-button" data-add-post-element="<%= kind %>"><span class="element-library-plus">+</span><span><strong><%= label %></strong><small><%= description %></small></span></button>
+      <% end %>
+    </div>
+  </section>
+
+  <% PostBlock::TYPES.each do |kind| %>
+    <template data-post-element-template="<%= kind %>"><%= render "posts/element_fields", kind:, index: "ELEMENT_INDEX", resource_options: %></template>
+  <% end %>
+
+  <footer class="post-canvas-footer">
+    <div class="post-canvas-settings">
+      <% if space == "general" %><label><span>Audience</span><%= f.select :visibility, [["Members only", "members_only"], ["Everyone, including visitors", "everyone"]] %></label><% end %>
+      <% if space == "main" && (Current.user.owner? || Current.user.admin?) %>
+        <label class="announcement-email-option"><%= check_box_tag "post[send_important_announcement_email]", "1", false, disabled: !local_assigns.fetch(:email_available, false) %><span><strong>Email this important update</strong><small><%= local_assigns.fetch(:email_available, false) ? "Send it to opted-in invited members." : "Configure SMTP to enable email delivery." %></small></span></label>
+      <% end %>
+    </div>
+    <div class="post-canvas-publish"><span>Emoji from your normal keyboard work everywhere.</span><%= f.submit "Publish post", class: "button" %></div>
+  </footer>
+<% end %>

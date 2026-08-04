@@ -71,6 +71,46 @@ class ComposablePostBlocksTest < ActionDispatch::IntegrationTest
     assert_select ".resource-file", text: /guests.csv/
   end
 
+  test "a post is published from mixed ordered elements instead of a post type" do
+    assert_difference "Post.count", 1 do
+      assert_difference "PostBlock.count", 4 do
+        post posts_path, params: {
+          post: {
+            space: "main",
+            visibility: "everyone",
+            post_blocks_attributes: {
+              "1" => { kind: "text", body: "Welcome to the plan 🥂" },
+              "2" => { kind: "note", title: "Shared ideas", body: "Add suggestions", interactive: "1" },
+              "3" => { kind: "list", title: "Setup", options_text: "Lights\nTables", interactive: "1" },
+              "4" => { kind: "file_resource", title: "Guest data", files: [ fixture_file_upload("guests.csv", "text/csv") ] }
+            }
+          }
+        }
+      end
+    end
+
+    created = @site.posts.order(:created_at).last
+    assert_redirected_to feed_path("main")
+    assert_equal %w[text note list file_resource], created.post_blocks.pluck(:kind)
+    assert_equal "Welcome to the plan 🥂", created.post_blocks.first.body
+    assert_predicate created.post_blocks.second, :interactive?
+    assert_equal %w[Lights Tables], created.post_blocks.third.list_items.pluck("text")
+    assert_predicate created.post_blocks.fourth.files, :attached?
+  end
+
+  test "the composer exposes elements directly and relies on keyboard emoji" do
+    get feed_path("main")
+
+    assert_response :success
+    assert_select ".post-type-tabs", count: 0
+    assert_select "[data-post-element-canvas] [data-post-element]", count: 1
+    assert_select "[data-add-post-element='note']", text: /Sticky note/
+    assert_select "[data-add-post-element='sheet']", text: /Sticky sheet/
+    assert_select "[data-add-post-element='list']", text: /Sticky list/
+    assert_select "[data-add-post-element='file_resource']", text: /File/
+    assert_select "[data-insert-emoji]", count: 0
+  end
+
   private
 
   def create_block(kind, attributes = {})

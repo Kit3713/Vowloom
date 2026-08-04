@@ -138,17 +138,7 @@
     </section>
 
     <% if authenticated? && @group.site.content_live? && @group.accessible_to?(Current.user) %>
-      <%= form_with model: @post, class: "composer" do |f| %>
-        <%= f.hidden_field :space, value: "group_space" %>
-        <%= f.hidden_field :group_id, value: @group.id %>
-        <%= f.label :title, "Title (optional)" %>
-        <%= f.text_field :title %>
-        <%= f.label :body, "Write a post" %>
-        <%= f.text_area :body, rows: 3, placeholder: "Share an update, question, photo, or planning idea…" %>
-        <%= f.label :files, "Photos or videos (optional)" %>
-        <%= f.file_field :files, multiple: true, accept: "image/*,video/*" %>
-        <%= f.submit "Publish", class: "button" %>
-      <% end %>
+      <%= render "posts/composer", post: @post, space: "group_space", group: @group, email_available: false %>
     <% end %>
 
     <% @posts.each do |post| %>

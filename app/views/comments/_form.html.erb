@@ -9,12 +9,6 @@
         <%= social_icon(:image) %><span>Media</span>
         <%= f.file_field :files, name: "comment[files][]", multiple: true, accept: "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime", class: "sr-only", data: { comment_files: true } %>
       </label>
-      <details class="emoji-menu">
-        <summary class="comment-tool" title="Add an emoji"><span aria-hidden="true">☺</span><span>Emoji</span></summary>
-        <div class="emoji-grid" aria-label="Wedding emojis">
-          <% %w[❤️ 😂 🥰 😍 🥹 😊 🎉 🥂 💍 💐 ✨ 📸 👏 🙌 🔥 💕 😭 🤍 👍].each do |emoji| %><button type="button" data-insert-emoji="<%= emoji %>" aria-label="Add <%= emoji %>"><%= emoji %></button><% end %>
-        </div>
-      </details>
       <%= f.submit(local_assigns[:parent] ? "Reply" : "Post", class: "comment-submit") %>
     </div>
   </div>

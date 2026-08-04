@@ -82,7 +82,7 @@ class Post < ApplicationRecord
   private
 
   def body_title_or_media_present
-    errors.add(:base, "Write something, add a title, or attach media") if body.blank? && title.blank? && media_assets.empty? && postable.blank?
+    errors.add(:base, "Add at least one element to the post") if body.blank? && title.blank? && media_assets.empty? && postable.blank? && post_blocks.empty?
   end
 
   def group_space_has_group

@@ -13,17 +13,25 @@ class GroupPostUploadTest < ActionDispatch::IntegrationTest
     get group_path(@group)
 
     assert_response :success
-    assert_select "input[type=file][name='post[files][]']"
+    assert_select "input[type=file][name^='post[post_blocks_attributes]'][name$='[files][]']"
 
     upload = fixture_file_upload("photo.jpg", "image/jpeg")
 
-    assert_difference [ "Post.count", "MediaAsset.count" ], 1 do
-      post posts_path, params: { post: { space: "group_space", group_id: @group.id, body: "For the group", files: [ upload ] } }
+    assert_difference "Post.count", 1 do
+      assert_difference "PostBlock.count", 2 do
+        assert_difference "MediaAsset.count", 1 do
+          post posts_path, params: { post: { space: "group_space", group_id: @group.id, post_blocks_attributes: {
+            "1" => { kind: "text", body: "For the group" },
+            "2" => { kind: "media", files: [ upload ] }
+          } } }
+        end
+      end
     end
 
     assert_redirected_to group_path(@group)
     group_post = @group.posts.last
-    assert_equal group_post, @site.media_assets.last.post
+    assert_equal %w[text media], group_post.post_blocks.pluck(:kind)
+    assert_predicate group_post.post_blocks.last.media_assets.first.file, :attached?
 
     assert_difference "Comment.count", 1 do
       post post_comments_path(group_post), params: { comment: { body: "Looks great!" } }

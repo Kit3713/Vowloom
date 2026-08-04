@@ -2,7 +2,11 @@
 <section class="planning-block planning-block-<%= block.kind.dasherize %>" id="<%= dom_id(block) %>">
   <header class="planning-block-heading"><span class="planning-block-kind"><%= block.kind.humanize %></span><% if block.closes_at %><time datetime="<%= block.closes_at.iso8601 %>">Closes <%= block.closes_at.to_fs(:long) %></time><% end %></header>
 
-  <% if block.note? %>
+  <% if block.text? %>
+    <% if block.title.present? %><h3><%= block.title %></h3><% end %><div class="post-body"><%= simple_format(block.body) %></div>
+  <% elsif block.media? %>
+    <% if block.title.present? %><p class="media-element-caption"><%= block.title %></p><% end %><section class="media-grid post-media-grid"><% block.media_assets.where.not(status: :hidden).with_attached_file.each do |asset| %><figure><% if asset.image? %><%= image_tag asset.rendition(:feed) %><% else %><%= video_tag url_for(asset.file), controls: true, preload: "metadata" %><% end %></figure><% end %></section>
+  <% elsif block.note? %>
     <% if block.title.present? %><h3><%= block.title %></h3><% end %>
     <% if block.contributable_by?(Current.user) %><%= form_with model: [block.post, block], class: "sticky-note-form" do |f| %><%= f.hidden_field :lock_version %><%= f.text_area :body, rows: 5, maxlength: 10_000, aria: { label: block.title.presence || "Shared note" } %><div class="sticky-note-footer"><span>Collaborative note · updated <%= time_ago_in_words(block.updated_at) %> ago</span><%= f.submit "Save note", class: "button" %></div><% end %><% else %><div class="sticky-note-body"><%= simple_format(block.body) %></div><% end %>
   <% elsif block.sheet? %>

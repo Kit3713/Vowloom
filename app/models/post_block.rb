@@ -1,5 +1,6 @@
 class PostBlock < ApplicationRecord
-  TYPES = %w[note sheet list questionnaire event_rsvp checklist signup file_resource location album].freeze
+  TYPES = %w[text media note sheet list questionnaire event_rsvp checklist signup file_resource location album].freeze
+  MEDIA_FILE_TYPES = %w[image/png image/jpeg image/webp image/gif video/mp4 video/webm video/quicktime].freeze
   SAFE_FILE_TYPES = %w[
     application/pdf text/plain text/csv
     application/msword application/vnd.openxmlformats-officedocument.wordprocessingml.document
@@ -13,6 +14,7 @@ class PostBlock < ApplicationRecord
   belongs_to :created_by, class_name: "User"
   belongs_to :blockable, polymorphic: true, optional: true
   has_many :responses, class_name: "PostBlockResponse", dependent: :destroy
+  has_many :media_assets, dependent: :destroy
   has_many_attached :files
 
   scope :ordered, -> { order(:position, :created_at) }
@@ -29,6 +31,7 @@ class PostBlock < ApplicationRecord
   validate :blockable_belongs_to_site
   validate :files_are_safe
   validate :files_fit_site_quota
+  validate :element_has_content
 
   def options
     Array(settings["options"]).filter_map { |entry| entry.to_s.strip.presence }.uniq
@@ -47,10 +50,11 @@ class PostBlock < ApplicationRecord
   end
 
   def available_to?(user)
-    return false unless post.accessible_to?(user)
+    visible_post = user ? post.accessible_to?(user) : post.everyone? && (!post.group_space? || post.group.site_wide?)
+    return false unless visible_post
     return staff?(user) if audience == "staff"
 
-    user.present?
+    true
   end
 
   def open_for_responses?
@@ -107,6 +111,22 @@ class PostBlock < ApplicationRecord
     end
   end
 
+  def materialize_media!(site:, user:)
+    return unless media?
+
+    files.to_a.each do |attachment|
+      asset = media_assets.build(
+        site:,
+        user:,
+        post:,
+        status: user.owner? || user.admin? || user.helper? ? :approved : :submitted
+      )
+      asset.file.attach(attachment.blob)
+      attachment.destroy!
+      asset.save!
+    end
+  end
+
   private
 
   def staff?(user)
@@ -126,8 +146,9 @@ class PostBlock < ApplicationRecord
 
   def files_are_safe
     errors.add(:files, "can include no more than 10 files") if files.length > 10
+    allowed_types = media? ? MEDIA_FILE_TYPES : SAFE_FILE_TYPES
     files.each do |file|
-      errors.add(:files, "must be a supported document, spreadsheet, presentation, image, or video") unless file.content_type.in?(SAFE_FILE_TYPES)
+      errors.add(:files, "must be a supported document, spreadsheet, presentation, image, or video") unless file.content_type.in?(allowed_types)
       errors.add(:files, "must each be 500 MB or smaller") if file.byte_size > 500.megabytes
     end
   end
@@ -137,5 +158,12 @@ class PostBlock < ApplicationRecord
     return if post.site.media_bytes_used + files.sum(&:byte_size) <= post.site.media_quota_bytes
 
     errors.add(:files, "would exceed this wedding site's media storage limit")
+  end
+
+  def element_has_content
+    errors.add(:body, "cannot be blank") if (text? || note?) && title.blank? && body.blank?
+    errors.add(:files, "must include at least one file") if media? && !files.attached? && media_assets.empty?
+    errors.add(:files, "must include at least one file") if file_resource? && !files.attached?
+    errors.add(:blockable, "must be selected") if (questionnaire? || event_rsvp? || album?) && blockable.blank?
   end
 end

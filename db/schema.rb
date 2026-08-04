@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_04_020000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_04_023000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -279,6 +279,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_020000) do
     t.string "credit"
     t.bigint "event_id"
     t.boolean "featured", default: false, null: false
+    t.bigint "post_block_id"
     t.bigint "post_id"
     t.bigint "site_id", null: false
     t.integer "status", default: 0, null: false
@@ -286,6 +287,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_020000) do
     t.bigint "user_id", null: false
     t.index ["comment_id"], name: "index_media_assets_on_comment_id"
     t.index ["event_id"], name: "index_media_assets_on_event_id"
+    t.index ["post_block_id"], name: "index_media_assets_on_post_block_id"
     t.index ["post_id"], name: "index_media_assets_on_post_id"
     t.index ["site_id"], name: "index_media_assets_on_site_id"
     t.index ["user_id"], name: "index_media_assets_on_user_id"
@@ -723,6 +725,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_04_020000) do
   add_foreign_key "kiosk_displays", "users", column: "created_by_id"
   add_foreign_key "media_assets", "comments"
   add_foreign_key "media_assets", "events"
+  add_foreign_key "media_assets", "post_blocks"
   add_foreign_key "media_assets", "posts"
   add_foreign_key "media_assets", "sites"
   add_foreign_key "media_assets", "users"

@@ -10,7 +10,7 @@ class FeedsController < ApplicationController
     @posts = visible_posts_for(@space).includes(:postable).select do |post|
       !post.postable.is_a?(Questionnaire) || post.postable.available_to?(Current.user) || post.postable.manageable_by?(Current.user)
     end
-    @post = Post.new(space: @space, visibility: @space == "general" ? :members_only : :everyone)
+    @post = @site.posts.build(space: @space, visibility: @space == "general" ? :members_only : :everyone)
     @questionnaire = @site.questionnaires.build if @space == "main"
     @questionnaire_templates = QuestionnaireTemplates.keys
     @available_groups = @site.groups.select { |group| group.accessible_to?(Current.user) } if authenticated?

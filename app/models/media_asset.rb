@@ -28,6 +28,7 @@ class MediaAsset < ApplicationRecord
   belongs_to :site
   belongs_to :user
   belongs_to :post, optional: true
+  belongs_to :post_block, optional: true
   belongs_to :comment, optional: true
   belongs_to :event, optional: true
   has_many :album_items, dependent: :destroy
