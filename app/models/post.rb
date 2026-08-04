@@ -12,11 +12,13 @@ class Post < ApplicationRecord
 
   enum :space, { main: 0, general: 1, group_space: 2, couple_inbox: 3 }, default: :main
   enum :visibility, { everyone: 0, members_only: 1 }, default: :everyone
+  enum :post_type, { story: 0, discussion: 1, media_post: 2, questionnaire_post: 3 }, default: :story
 
   scope :visible, -> { where(hidden_at: nil).where.not(published_at: nil) }
   scope :chronological, -> { order(pinned: :desc, published_at: :desc) }
 
-  validates :body, presence: true, length: { maximum: 10_000 }
+  validates :body, length: { maximum: 10_000 }
+  validate :body_title_or_media_present
   validate :group_space_has_group
   validate :user_belongs_to_site
 
@@ -70,6 +72,10 @@ class Post < ApplicationRecord
   end
 
   private
+
+  def body_title_or_media_present
+    errors.add(:base, "Write something, add a title, or attach media") if body.blank? && title.blank? && media_assets.empty? && postable.blank?
+  end
 
   def group_space_has_group
     errors.add(:group, "is required for a group post") if group_space? && group.blank?

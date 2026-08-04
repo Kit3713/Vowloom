@@ -1,6 +1,6 @@
 <main class="community-page" style="--accent: <%= @site.accent_color %>">
   <section class="feed-shell">
-    <header class="page-intro"><div><p class="eyebrow">Wedding schedule</p><h1>Events</h1><p>Everything guests need to know, from travel plans to the last dance.</p></div><%= link_to "Large calendar", calendar_path, class: "button button-secondary" %></header>
+    <header class="page-intro"><div><p class="eyebrow">Wedding schedule</p><h1>Events</h1><p>The complete schedule and calendar, from travel plans to the last dance.</p></div></header>
 
     <% if authenticated? && (Current.user.owner? || Current.user.admin? || Current.user.helper?) && @site.content_live? %>
       <details class="create-panel" <%= "open" if @event.errors.any? %>><summary><span class="create-icon"><%= social_icon(:plus) %></span><span>Create an event</span></summary><%= form_with model: @event, class: "composer" do |f| %>
@@ -28,7 +28,12 @@
       <% end %></details>
     <% end %>
 
-    <section class="event-list"><% @events.each do |event| %><%= link_to event, class: "event-list-card" do %><time><strong><%= event.starts_at&.strftime("%b") || "TBA" %></strong><span><%= event.starts_at&.day || "—" %></span><small><%= event.starts_at&.year %></small></time><div><span class="event-kind"><%= event.site_wide? ? "Everyone" : "By invitation" %></span><h2><%= event.title %></h2><p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %><%= " · #{event.location_name}" if event.location_name.present? %></p><p><%= truncate(event.description, length: 180) %></p><% if event.rsvp_deadline.present? %><strong class="rsvp-note">RSVP by <%= event.rsvp_deadline.to_fs(:long) %></strong><% end %></div><span class="event-arrow" aria-hidden="true">→</span><% end %><% end %></section>
+    <section class="schedule-calendar" aria-label="Wedding calendar">
+      <header class="calendar-toolbar"><%= link_to "← #{@month.prev_month.strftime('%B')}", events_path(month: @month.prev_month.strftime('%Y-%m')), class: "calendar-month-link" %><h2><%= @month.strftime("%B %Y") %></h2><%= link_to "#{@month.next_month.strftime('%B')} →", events_path(month: @month.next_month.strftime('%Y-%m')), class: "calendar-month-link" %></header>
+      <div class="calendar-scroll"><table class="month-calendar"><caption class="sr-only"><%= @month.strftime("%B %Y") %> wedding events</caption><thead><tr><% Date::ABBR_DAYNAMES.each do |day| %><th scope="col"><%= day %></th><% end %></tr></thead><tbody><% @weeks.each do |week| %><tr><% week.each do |day| %><td class="<%= "outside-month" unless day.month == @month.month %> <%= "today" if day == Date.current %>"><time datetime="<%= day.iso8601 %>"><%= day.day %></time><% @events_by_date.fetch(day, []).each do |event| %><%= link_to event.title, event_path(event), class: "calendar-event" %><% end %></td><% end %></tr><% end %></tbody></table></div>
+    </section>
+
+    <div class="schedule-list-heading"><p class="eyebrow">Agenda</p><h2>All events</h2></div><section class="event-list"><% @events.each do |event| %><%= link_to event, class: "event-list-card" do %><time><strong><%= event.starts_at&.strftime("%b") || "TBA" %></strong><span><%= event.starts_at&.day || "—" %></span><small><%= event.starts_at&.year %></small></time><div><span class="event-kind"><%= event.site_wide? ? "Everyone" : "By invitation" %></span><h2><%= event.title %></h2><p><%= event.starts_at&.to_fs(:long) || "Time to be announced" %><%= " · #{event.location_name}" if event.location_name.present? %></p><p><%= truncate(event.description, length: 180) %></p><% if event.rsvp_deadline.present? %><strong class="rsvp-note">RSVP by <%= event.rsvp_deadline.to_fs(:long) %></strong><% end %></div><span class="event-arrow" aria-hidden="true">→</span><% end %><% end %></section>
     <% if @events.empty? %><section class="empty-surface"><h2>No events yet</h2><p>The wedding schedule will appear here.</p></section><% end %>
   </section>
 </main>

@@ -7,13 +7,58 @@ class CommentsController < ApplicationController
     return redirect_to(new_session_path, alert: "Sign in to join the conversation.") unless authenticated?
     return redirect_to(comment_fallback(post), alert: "You cannot reply to that conversation.") unless post.commentable_by?(Current.user)
 
-    comment = post.comments.build(user: Current.user, body: params.require(:comment).fetch(:body))
-    if comment.save
-      Turbo::StreamsChannel.broadcast_append_to(post, target: helpers.dom_id(post, :comments), partial: "comments/comment", locals: { comment: }) if post.conversation?
+    parent = parent_comment(post)
+    comment = post.comments.build(user: Current.user, body: comment_params[:body], parent:)
+    if create_comment_with_media(comment, post)
+      broadcast_comment(post, comment)
       redirect_back fallback_location: comment_fallback(post), notice: "Comment added."
     else
       redirect_back fallback_location: comment_fallback(post), alert: comment.errors.full_messages.to_sentence
     end
+  end
+
+  private
+
+  def comment_params
+    params.require(:comment).permit(:body, :parent_id, files: [])
+  end
+
+  def parent_comment(post)
+    return if comment_params[:parent_id].blank?
+
+    parent = post.comments.visible.find(comment_params[:parent_id])
+    parent.parent || parent
+  end
+
+  def create_comment_with_media(comment, post)
+    files = comment_params.fetch(:files, []).reject(&:blank?)
+    if files.length > 4
+      comment.errors.add(:base, "Attach no more than four photos or videos to one comment")
+      return false
+    end
+
+    Comment.transaction do
+      assets = files.map do |file|
+        comment.media_assets.build(
+          site: current_site,
+          user: Current.user,
+          post:,
+          file:,
+          status: Current.user.owner? || Current.user.admin? || Current.user.helper? ? :approved : :submitted
+        )
+      end
+      comment.save!
+      assets.each { |asset| asset.save! unless asset.persisted? }
+    end
+    true
+  rescue ActiveRecord::RecordInvalid => error
+    comment.errors.add(:base, error.record.errors.full_messages.to_sentence) unless error.record == comment
+    false
+  end
+
+  def broadcast_comment(post, comment)
+    target = comment.parent ? helpers.dom_id(comment.parent, :replies) : helpers.dom_id(post, :comments)
+    Turbo::StreamsChannel.broadcast_append_to(post, target:, partial: "comments/comment", locals: { comment:, interactive: false })
   end
 
   def comment_fallback(post)

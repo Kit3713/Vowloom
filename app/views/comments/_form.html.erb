@@ -1,0 +1,21 @@
+<%= form_with url: post_comments_path(post), class: ["comment-composer", { "comment-composer-reply": local_assigns[:parent] }], multipart: true do |f| %>
+  <%= f.hidden_field :parent_id, name: "comment[parent_id]", value: local_assigns[:parent]&.id if local_assigns[:parent] %>
+  <div class="comment-composer-avatar"><% if Current.user.profile_photo.attached? %><%= image_tag Current.user.profile_photo, class: "avatar", alt: "" %><% else %><span class="avatar avatar-fallback"><%= person_initials(Current.user) %></span><% end %></div>
+  <div class="comment-composer-main">
+    <%= f.text_area :body, name: "comment[body]", rows: 1, maxlength: 5_000, placeholder: local_assigns[:parent] ? "Reply to #{parent.user.display_name}…" : "Join the conversation…", aria: { label: local_assigns[:parent] ? "Write a reply" : "Write a comment" }, data: { comment_text: true } %>
+    <div class="comment-attachment-preview" data-comment-attachment-preview hidden></div>
+    <div class="comment-composer-tools">
+      <label class="comment-tool" title="Add photos or videos">
+        <%= social_icon(:image) %><span>Media</span>
+        <%= f.file_field :files, name: "comment[files][]", multiple: true, accept: "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime", class: "sr-only", data: { comment_files: true } %>
+      </label>
+      <details class="emoji-menu">
+        <summary class="comment-tool" title="Add an emoji"><span aria-hidden="true">☺</span><span>Emoji</span></summary>
+        <div class="emoji-grid" aria-label="Wedding emojis">
+          <% %w[❤️ 😂 🥰 😍 🥹 😊 🎉 🥂 💍 💐 ✨ 📸 👏 🙌 🔥 💕 😭 🤍 👍].each do |emoji| %><button type="button" data-insert-emoji="<%= emoji %>" aria-label="Add <%= emoji %>"><%= emoji %></button><% end %>
+        </div>
+      </details>
+      <%= f.submit(local_assigns[:parent] ? "Reply" : "Post", class: "comment-submit") %>
+    </div>
+  </div>
+<% end %>

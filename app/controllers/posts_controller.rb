@@ -33,7 +33,7 @@ class PostsController < ApplicationController
   private
 
   def post_params
-    params.require(:post).permit(:title, :body, :visibility, :comments_enabled, :group_id, files: [])
+    params.require(:post).permit(:title, :body, :visibility, :comments_enabled, :group_id, :post_type, files: [])
   end
 
   def content_params
@@ -42,10 +42,11 @@ class PostsController < ApplicationController
 
   def create_post_with_attachments
     Post.transaction do
-      @post.save!
-      post_params.fetch(:files, []).reject(&:blank?).each do |file|
-        @post.media_assets.create!(site: @site, user: Current.user, file:, status: Current.user.helper? || Current.user.admin? || Current.user.owner? ? :approved : :submitted)
+      assets = post_params.fetch(:files, []).reject(&:blank?).map do |file|
+        @post.media_assets.build(site: @site, user: Current.user, file:, status: Current.user.helper? || Current.user.admin? || Current.user.owner? ? :approved : :submitted)
       end
+      @post.save!
+      assets.each { |asset| asset.save! unless asset.persisted? }
       @announcement_delivery_ids = @post.queue_important_announcement_emails!(actor: Current.user) if important_announcement_email_requested?
     end
     @announcement_delivery_ids&.each { |delivery_id| ImportantAnnouncementDeliveryJob.perform_later(delivery_id) }

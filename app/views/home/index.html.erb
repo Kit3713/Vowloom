@@ -19,13 +19,13 @@
       <%= link_to "Set up the site", new_setup_path, class: "button" %>
     <% elsif authenticated? %>
       <div class="actions">
-        <%= link_to "Open the community", community_path, class: "button" %>
+        <%= link_to "Enter the wedding", feed_path("main"), class: "button" %>
         <%= button_to "Sign out", session_path, method: :delete, class: "button button-secondary" %>
       </div>
     <% else %>
       <div class="actions">
         <% if @site.public_access? %>
-          <%= link_to "Continue as visitor", community_path, class: "button" %>
+          <%= link_to "Continue as visitor", feed_path("main"), class: "button" %>
         <% end %>
         <%= link_to "Sign in", new_session_path, class: "button button-secondary" %>
       </div>

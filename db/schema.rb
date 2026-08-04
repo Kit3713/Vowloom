@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_04_011000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -133,13 +133,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
   end
 
   create_table "comments", force: :cascade do |t|
-    t.text "body", null: false
+    t.text "body"
     t.datetime "created_at", null: false
     t.datetime "hidden_at"
+    t.bigint "parent_id"
     t.bigint "post_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["post_id"], name: "index_comments_on_post_id"
+    t.index ["parent_id"], name: "index_comments_on_parent_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
   end
 
@@ -272,6 +274,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
 
   create_table "media_assets", force: :cascade do |t|
     t.text "caption"
+    t.bigint "comment_id"
     t.datetime "created_at", null: false
     t.string "credit"
     t.bigint "event_id"
@@ -281,6 +284,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["comment_id"], name: "index_media_assets_on_comment_id"
     t.index ["event_id"], name: "index_media_assets_on_event_id"
     t.index ["post_id"], name: "index_media_assets_on_post_id"
     t.index ["site_id"], name: "index_media_assets_on_site_id"
@@ -307,7 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
 
   create_table "posts", force: :cascade do |t|
     t.datetime "announcement_email_queued_at"
-    t.text "body", null: false
+    t.text "body"
     t.boolean "comments_enabled", default: true, null: false
     t.boolean "conversation", default: false, null: false
     t.datetime "created_at", null: false
@@ -318,6 +322,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
     t.boolean "pinned", default: false, null: false
     t.bigint "postable_id"
     t.string "postable_type"
+    t.integer "post_type", default: 0, null: false
     t.datetime "published_at"
     t.bigint "site_id", null: false
     t.integer "space", default: 0, null: false
@@ -330,6 +335,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
     t.index ["group_id"], name: "index_posts_on_group_id"
     t.index ["postable_type", "postable_id"], name: "index_posts_on_postable_type_and_postable_id"
     t.index ["site_id", "space", "published_at"], name: "index_posts_on_site_id_and_space_and_published_at"
+    t.index ["site_id", "post_type", "published_at"], name: "index_posts_on_site_id_and_post_type_and_published_at"
     t.index ["site_id"], name: "index_posts_on_global_conversation", unique: true, where: "((conversation = true) AND (group_id IS NULL))"
     t.index ["site_id"], name: "index_posts_on_site_id"
     t.index ["user_id"], name: "index_posts_on_user_id"
@@ -662,6 +668,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
   add_foreign_key "audit_events", "sites"
   add_foreign_key "audit_events", "users", column: "actor_id"
   add_foreign_key "comments", "posts"
+  add_foreign_key "comments", "comments", column: "parent_id"
   add_foreign_key "comments", "users"
   add_foreign_key "event_invitations", "events"
   add_foreign_key "event_invitations", "invitees"
@@ -682,6 +689,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_03_040000) do
   add_foreign_key "kiosk_displays", "sites"
   add_foreign_key "kiosk_displays", "users", column: "created_by_id"
   add_foreign_key "media_assets", "events"
+  add_foreign_key "media_assets", "comments"
   add_foreign_key "media_assets", "posts"
   add_foreign_key "media_assets", "sites"
   add_foreign_key "media_assets", "users"

@@ -164,3 +164,71 @@ const bindWeddingCalendars = () => {
 }
 
 document.addEventListener("turbo:load", bindWeddingCalendars)
+
+const bindSocialComposers = () => {
+  document.querySelectorAll(".create-panel").forEach((panel) => {
+    const buttons = panel.querySelectorAll("[data-post-type-button]")
+    const postPanel = panel.querySelector('[data-post-type-panel="post"]')
+    const questionnairePanel = panel.querySelector('[data-post-type-panel="questionnaire"]')
+    const postTypeInput = panel.querySelector("[data-post-type-value]")
+
+    buttons.forEach((button) => {
+      if (button.dataset.postTypeBound) return
+      button.dataset.postTypeBound = "true"
+      button.addEventListener("click", () => {
+        const type = button.dataset.postTypeButton
+        buttons.forEach((entry) => entry.classList.toggle("active", entry === button))
+        if (postPanel) postPanel.hidden = type === "questionnaire"
+        if (questionnairePanel) questionnairePanel.hidden = type !== "questionnaire"
+        if (postTypeInput && type !== "questionnaire") postTypeInput.value = type
+        const focusTarget = type === "questionnaire" ? questionnairePanel?.querySelector("input:not([type=hidden])") : postPanel?.querySelector(type === "media_post" ? 'input[type="file"]' : "textarea")
+        focusTarget?.focus()
+      })
+    })
+  })
+
+  document.querySelectorAll("[data-insert-emoji]").forEach((button) => {
+    if (button.dataset.emojiBound) return
+    button.dataset.emojiBound = "true"
+    button.addEventListener("click", () => {
+      const composer = button.closest("form")
+      const input = composer?.querySelector("[data-comment-text]")
+      if (!input) return
+      const start = input.selectionStart ?? input.value.length
+      const end = input.selectionEnd ?? start
+      input.setRangeText(button.dataset.insertEmoji, start, end, "end")
+      input.focus()
+      button.closest("details")?.removeAttribute("open")
+    })
+  })
+
+  document.querySelectorAll("[data-comment-files]").forEach((input) => {
+    if (input.dataset.filesBound) return
+    input.dataset.filesBound = "true"
+    input.addEventListener("change", () => {
+      const preview = input.closest("form")?.querySelector("[data-comment-attachment-preview]")
+      if (!preview) return
+      preview.replaceChildren()
+      Array.from(input.files).slice(0, 4).forEach((file) => {
+        const item = document.createElement("span")
+        item.textContent = `${file.type.startsWith("video/") ? "Video" : "Photo"}: ${file.name}`
+        preview.append(item)
+      })
+      preview.hidden = input.files.length === 0
+    })
+  })
+
+  document.querySelectorAll("textarea[data-comment-text]").forEach((textarea) => {
+    if (textarea.dataset.autosizeBound) return
+    textarea.dataset.autosizeBound = "true"
+    const resize = () => {
+      textarea.style.height = "auto"
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
+    }
+    textarea.addEventListener("input", resize)
+    resize()
+  })
+}
+
+document.addEventListener("turbo:load", bindSocialComposers)
+document.addEventListener("turbo:before-stream-render", () => requestAnimationFrame(bindSocialComposers))

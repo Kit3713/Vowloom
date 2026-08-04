@@ -28,6 +28,7 @@ class MediaAsset < ApplicationRecord
   belongs_to :site
   belongs_to :user
   belongs_to :post, optional: true
+  belongs_to :comment, optional: true
   belongs_to :event, optional: true
   has_many :album_items, dependent: :destroy
   has_many :albums, through: :album_items
@@ -82,6 +83,7 @@ class MediaAsset < ApplicationRecord
   # curation flags must not turn a moderated post into a separate public copy.
   def accessible_to?(viewer)
     return false if post && !post.published?
+    return false if comment&.hidden_at?
     return true if publicly_accessible?
     return false unless viewer
 
@@ -90,6 +92,7 @@ class MediaAsset < ApplicationRecord
 
   def publicly_accessible?
     return false if post && !post.published?
+    return false if comment&.hidden_at?
     return true unless post
 
     post.everyone? && (!post.group_space? || post.group.site_wide?)

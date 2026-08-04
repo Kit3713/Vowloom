@@ -15,11 +15,12 @@ class EventCalendarTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "SUMMARY:Reception"
   end
 
-  test "dedicated calendar page shows visible events in the requested month" do
+  test "legacy calendar route redirects into consolidated events calendar" do
     get calendar_path(month: "2028-06")
 
-    assert_response :success
-    assert_select "h1", text: "June 2028"
+    assert_redirected_to events_path(month: "2028-06")
+    follow_redirect!
+    assert_select "h2", text: "June 2028"
     assert_select "a.calendar-event", text: "Reception"
   end
 

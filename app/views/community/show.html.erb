@@ -49,7 +49,7 @@
     <% if @announcements.empty? %><section class="empty-surface"><h2>The story starts here</h2><p>Official updates from the couple will appear in this space.</p></section><% end %>
   </section>
 
-  <section class="home-section-heading"><div><p class="eyebrow">Save the date</p><h2>Coming up</h2></div><%= link_to "Full calendar", calendar_path %></section>
+  <section class="home-section-heading"><div><p class="eyebrow">Save the date</p><h2>Coming up</h2></div><%= link_to "Events & calendar", events_path %></section>
   <section class="event-strip">
     <% @upcoming_events.each do |event| %>
       <%= link_to event_path(event), class: "event-preview" do %>

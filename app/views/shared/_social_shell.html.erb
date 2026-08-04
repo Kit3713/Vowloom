@@ -24,16 +24,12 @@
     <aside class="social-sidebar" aria-label="Wedding navigation">
       <nav class="social-nav">
         <% [
-          ["Wedding home", community_path, :home],
+          ["Cover", root_path, :home],
           ["Main updates", feed_path("main"), :announcement],
           ["General", feed_path("general"), :people],
           ["Events", events_path, :calendar],
-          ["Calendar", calendar_path, :calendar],
           ["Gallery", gallery_path, :image],
-          ["Groups", groups_path, :groups],
-          ["Questions", questionnaires_path, :questions],
-          ["Registry", registry_collections_path, :gift],
-          ["Wedding chat", chat_path, :chat]
+          ["Groups", groups_path, :groups]
         ].each do |label, destination, icon| %>
           <%= link_to destination, class: ["social-nav-link", { active: social_nav_active?(destination) }], aria: ({ current: "page" } if social_nav_active?(destination)) do %>
             <%= social_icon(icon) %><span><%= label %></span>
@@ -92,7 +88,7 @@
   </div>
 
   <nav class="mobile-social-nav" aria-label="Primary navigation">
-    <% [["Home", community_path, :home], ["Main", feed_path("main"), :announcement], ["Events", events_path, :calendar], ["Gallery", gallery_path, :image], ["More", groups_path, :menu]].each do |label, destination, icon| %>
+    <% [["Cover", root_path, :home], ["Main", feed_path("main"), :announcement], ["General", feed_path("general"), :people], ["Events", events_path, :calendar], ["More", groups_path, :menu]].each do |label, destination, icon| %>
       <%= link_to destination, class: ({ active: social_nav_active?(destination) }) do %><%= social_icon(icon) %><span><%= label %></span><% end %>
     <% end %>
   </nav>

@@ -11,15 +11,12 @@
       <%= turbo_stream_from @conversation if authenticated? %>
       <section class="post-card chat-thread">
         <div id="<%= dom_id(@conversation, :comments) %>">
-          <% @conversation.comments.visible.each do |comment| %>
+          <% @conversation.comments.visible.roots.each do |comment| %>
             <%= render "comments/comment", comment: %>
           <% end %>
         </div>
         <% if authenticated? && @site.content_live? %>
-          <%= form_with url: post_comments_path(@conversation), class: "comment-form" do |f| %>
-            <%= f.text_field :body, name: "comment[body]", required: true, placeholder: "Send a message", autocomplete: "off" %>
-            <%= f.submit "Send" %>
-          <% end %>
+          <%= render "comments/form", post: @conversation %>
         <% end %>
       </section>
     <% elsif authenticated? && @site.content_live? && (Current.user.owner? || Current.user.admin? || @group.created_by == Current.user) %>

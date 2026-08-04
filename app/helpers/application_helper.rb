@@ -6,6 +6,8 @@ module ApplicationHelper
   end
 
   def social_nav_active?(destination)
+    return true if destination == feed_path("main") && request.path == community_path
+
     request.path == destination || (destination != community_path && request.path.start_with?("#{destination}/"))
   end
 

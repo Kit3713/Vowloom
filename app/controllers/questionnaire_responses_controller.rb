@@ -37,7 +37,7 @@ class QuestionnaireResponsesController < ApplicationController
       answer.save!
     end
     response.update!(submitted_at: Time.current)
-    redirect_to questionnaire, notice: "Your answers have been saved."
+    redirect_to(url_from(params[:return_to]) || questionnaire, notice: "Your answers have been saved.")
   rescue ActiveRecord::RecordInvalid => error
     redirect_to questionnaire, alert: error.record.errors.full_messages.to_sentence
   end

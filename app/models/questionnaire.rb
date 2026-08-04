@@ -7,6 +7,7 @@ class Questionnaire < ApplicationRecord
   has_many :responses, class_name: "QuestionnaireResponse", dependent: :destroy
   has_many :group_resources, as: :resourceable, dependent: :destroy
   has_many :audience_targets, class_name: "QuestionnaireAudience", dependent: :destroy, inverse_of: :questionnaire
+  has_one :timeline_post, as: :postable, class_name: "Post", dependent: :destroy
 
   enum :status, { draft: 0, published: 1, closed: 2 }, default: :draft
   enum :response_scope, { individual: 0, household: 1 }, default: :individual

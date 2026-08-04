@@ -161,7 +161,7 @@
         </header>
         <%= simple_format(post.body) %>
         <section class="media-grid">
-          <% post.media_assets.where.not(status: :hidden).with_attached_file.each do |asset| %>
+          <% post.media_assets.where(comment_id: nil).where.not(status: :hidden).with_attached_file.each do |asset| %>
             <figure>
               <% if asset.image? %>
                 <%= image_tag asset.rendition(:feed) %>
@@ -176,22 +176,7 @@
           <%= pluralize(post.comments.visible.count, "comment") %>
           <%= render "moderation_reports/button", reportable: post if authenticated? && @group.site.content_live? %>
         </footer>
-        <% if post.comments_enabled? %>
-          <section class="comments">
-            <% post.comments.visible.each do |comment| %>
-              <p>
-                <strong><%= comment.user.display_name %></strong> <%= comment.body %>
-                <%= render "moderation_reports/button", reportable: comment if authenticated? && @group.site.content_live? %>
-              </p>
-            <% end %>
-            <% if authenticated? && @group.site.content_live? %>
-              <%= form_with url: post_comments_path(post), class: "comment-form" do |f| %>
-                <%= f.text_field :body, name: "comment[body]", required: true, placeholder: "Leave a comment" %>
-                <%= f.submit "Reply" %>
-              <% end %>
-            <% end %>
-          </section>
-        <% end %>
+        <% if post.comments_enabled? %><%= render "comments/thread", post: post %><% end %>
       </article>
     <% end %>
   </section>

@@ -32,9 +32,8 @@ class QuestionnairesController < ApplicationController
     @questionnaire.status = :published if params[:publish_now] == "1"
     return redirect_to(questionnaires_path, alert: "You cannot target that private group or event.") unless targets_accessible?(@questionnaire)
 
-    if @questionnaire.save
-      QuestionnaireTemplates.apply!(@questionnaire, template_key) if QuestionnaireTemplates.keys.include?(template_key)
-      redirect_to @questionnaire, notice: "Questionnaire created. Add questions below."
+    if create_questionnaire_with_timeline_post(template_key)
+      redirect_to(params[:publish_to_feed] == "1" ? feed_path("main", anchor: helpers.dom_id(@questionnaire.timeline_post)) : @questionnaire, notice: "Questionnaire published. You can add or refine questions from its expanded view.")
     else
       @questionnaires = @site.questionnaires.published.order(created_at: :desc)
       @available_groups = @site.groups.select { |group| group.accessible_to?(Current.user) }
@@ -69,6 +68,29 @@ class QuestionnairesController < ApplicationController
   end
 
   private
+
+  def create_questionnaire_with_timeline_post(template_key)
+    Questionnaire.transaction do
+      @questionnaire.save!
+      QuestionnaireTemplates.apply!(@questionnaire, template_key) if QuestionnaireTemplates.keys.include?(template_key)
+      if params[:publish_to_feed] == "1"
+        @questionnaire.create_timeline_post!(
+          site: @site,
+          user: Current.user,
+          space: :main,
+          visibility: :members_only,
+          post_type: :questionnaire_post,
+          title: @questionnaire.title,
+          body: @questionnaire.introduction,
+          published_at: Time.current
+        )
+      end
+    end
+    true
+  rescue ActiveRecord::RecordInvalid => error
+    @questionnaire.errors.add(:base, error.record.errors.full_messages.to_sentence) unless error.record == @questionnaire
+    false
+  end
 
   def set_site
     @site = current_site

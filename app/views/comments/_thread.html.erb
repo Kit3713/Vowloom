@@ -1,0 +1,7 @@
+<section class="conversation" aria-label="Comments">
+  <header class="conversation-heading"><div><strong>Conversation</strong><span><%= pluralize(post.comments.visible.count, "response") %></span></div></header>
+  <div id="<%= dom_id(post, :comments) %>" class="comment-thread">
+    <%= render partial: "comments/comment", collection: post.comments.visible.roots.includes(:user, :replies, media_assets: { file_attachment: :blob }), as: :comment %>
+  </div>
+  <% if authenticated? && current_site.content_live? && post.commentable_by?(Current.user) %><%= render "comments/form", post: %><% elsif !authenticated? %><p class="conversation-signin"><%= link_to "Sign in", new_session_path %> to join this conversation.</p><% end %>
+</section>
