@@ -46,7 +46,7 @@ gem "ruby-vips", "~> 2.0"
 # Optional S3-compatible storage for self-hosted object stores such as MinIO.
 gem "aws-sdk-s3", require: false
 # Generates kiosk join codes locally, with no external QR-image service.
-gem "rqrcode", "~> 2.2"
+gem "rqrcode", "~> 3.2"
 # Creates portable Gallery downloads without relying on a hosted archive service.
 gem "rubyzip", "~> 3.4"
 
